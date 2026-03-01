@@ -3,816 +3,766 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
 <title>InvisPose</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap');
 
 :root {
-–accent: #00ffc8;
-–accent2: #00b8ff;
-–red: #ff3d5a;
-–gold: #ffc844;
-–bg-hud: rgba(0,10,15,0.72);
-–border: rgba(0,255,200,0.25);
+–g: #00ffc8;
+–b: #00b8ff;
+–r: #ff3d5a;
+–y: #ffd166;
+–hud: rgba(0,8,14,0.78);
+–bd: rgba(0,255,200,0.22);
 –mono: ‘Share Tech Mono’, monospace;
-–display: ‘Orbitron’, sans-serif;
+–head: ‘Orbitron’, sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html, body {
 width: 100%; height: 100%;
 overflow: hidden;
-position: fixed;
 background: #000;
--webkit-tap-highlight-color: transparent;
+position: fixed;
 touch-action: none;
 }
 
-#video {
-position: fixed;
-inset: 0;
+/* ─── VIDEO + CANVAS ─── */
+#vid {
+position: fixed; inset: 0;
 width: 100%; height: 100%;
 object-fit: cover;
 z-index: 0;
+display: block;
 }
-#video.mirror { transform: scaleX(-1); }
 
-#canvas {
-position: fixed;
-inset: 0;
+#cv {
+position: fixed; inset: 0;
 width: 100%; height: 100%;
-z-index: 1;
+z-index: 2;
 pointer-events: none;
+display: block;
 }
 
-/* TOP BAR */
-.hud-top {
-position: fixed;
-top: 0; left: 0; right: 0;
-z-index: 10;
-padding: env(safe-area-inset-top, 10px) 14px 10px;
-background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 8px;
+/* ─── SCANLINE ─── */
+.scan {
+position: fixed; left: 0; right: 0; height: 2px;
+background: linear-gradient(90deg,transparent,var(–b) 25%,var(–g) 50%,var(–b) 75%,transparent);
+opacity: 0; z-index: 3; pointer-events: none;
+animation: scanAnim 3s linear infinite;
+}
+@keyframes scanAnim {
+0%   { top: 0%;   opacity: 0; }
+3%   { opacity: .3; }
+97%  { opacity: .3; }
+100% { top: 100%; opacity: 0; }
 }
 
-.logo {
-display: flex;
-align-items: center;
-gap: 8px;
-flex-shrink: 0;
+/* ─── CORNER MARKS ─── */
+.cm { position: fixed; width: 18px; height: 18px; z-index: 4; pointer-events: none; }
+.cm::before, .cm::after { content:’’; position: absolute; background: var(–g); opacity: .6; }
+.tl { top: calc(env(safe-area-inset-top,0px) + 52px); left: 10px; }
+.tl::before { width: 2px; height: 100%; top:0; left:0; }
+.tl::after  { width: 100%; height: 2px; top:0; left:0; }
+.tr { top: calc(env(safe-area-inset-top,0px) + 52px); right: 10px; }
+.tr::before { width: 2px; height: 100%; top:0; right:0; }
+.tr::after  { width: 100%; height: 2px; top:0; right:0; }
+.bl { bottom: calc(env(safe-area-inset-bottom,0px) + 80px); left: 10px; }
+.bl::before { width: 2px; height: 100%; bottom:0; left:0; }
+.bl::after  { width: 100%; height: 2px; bottom:0; left:0; }
+.br2 { bottom: calc(env(safe-area-inset-bottom,0px) + 80px); right: 10px; }
+.br2::before { width: 2px; height: 100%; bottom:0; right:0; }
+.br2::after  { width: 100%; height: 2px; bottom:0; right:0; }
+
+/* ─── TOP BAR ─── */
+.top {
+position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+padding: calc(env(safe-area-inset-top,8px) + 8px) 12px 8px;
+background: linear-gradient(to bottom,rgba(0,0,0,.8) 0%,transparent 100%);
+display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 
-.logo-mark {
-width: 26px; height: 26px;
-border: 1.5px solid var(–accent);
-border-radius: 50%;
+.logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.logo-dot {
+width: 24px; height: 24px; border-radius: 50%;
+border: 1.5px solid var(–g);
+box-shadow: 0 0 10px rgba(0,255,200,.4);
+position: relative; flex-shrink: 0;
 display: flex; align-items: center; justify-content: center;
-box-shadow: 0 0 10px rgba(0,255,200,0.4);
-position: relative;
 }
-.logo-mark::after {
+.logo-dot::after {
 content: ‘’;
-position: absolute;
-inset: 4px;
-border-radius: 50%;
-background: var(–accent);
-opacity: 0.7;
-animation: corePulse 2s ease-in-out infinite;
+width: 8px; height: 8px; border-radius: 50%;
+background: var(–g);
+animation: pulse 2s ease-in-out infinite;
 }
-@keyframes corePulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
+@keyframes pulse { 0%,100%{opacity:.4;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
 
-.logo-text {
-font-family: var(–display);
-font-size: 12px;
-font-weight: 700;
-letter-spacing: 3px;
-color: var(–accent);
-text-shadow: 0 0 14px rgba(0,255,200,0.6);
+.logo-name {
+font-family: var(–head); font-size: 13px; font-weight: 700;
+letter-spacing: 3px; color: var(–g);
+text-shadow: 0 0 12px rgba(0,255,200,.5);
 }
 
-.pills {
-display: flex;
-align-items: center;
-gap: 5px;
-flex-wrap: wrap;
-justify-content: flex-end;
-}
+.pills { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 .pill {
-display: flex;
-align-items: center;
-gap: 4px;
+display: flex; align-items: center; gap: 4px;
 padding: 3px 7px;
-background: var(–bg-hud);
-border: 1px solid var(–border);
-border-radius: 2px;
-font-family: var(–mono);
-font-size: 10px;
-letter-spacing: 0.5px;
-backdrop-filter: blur(8px);
--webkit-backdrop-filter: blur(8px);
+background: var(–hud);
+border: 1px solid var(–bd);
+font-family: var(–mono); font-size: 10px;
+backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 white-space: nowrap;
 }
-.pill-live { color: var(–accent); }
-.pill-dim  { color: rgba(0,255,200,0.45); }
-
-.dot {
-width: 5px; height: 5px;
-border-radius: 50%;
-background: var(–accent);
-box-shadow: 0 0 5px var(–accent);
-animation: blink 1.4s ease-in-out infinite;
-flex-shrink: 0;
+.pv { color: var(–g); }
+.pd { color: rgba(0,255,200,.4); }
+.blink {
+width: 5px; height: 5px; border-radius: 50%;
+background: var(–g); box-shadow: 0 0 5px var(–g);
+animation: blink 1.4s ease-in-out infinite; flex-shrink: 0;
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.1} }
 
-/* CORNER BRACKETS */
-.br {
-position: fixed;
-width: 18px; height: 18px;
-z-index: 5;
-pointer-events: none;
-}
-.br::before, .br::after {
-content: ‘’;
-position: absolute;
-background: var(–accent);
-opacity: 0.6;
-}
-.br-tl { top: calc(env(safe-area-inset-top,0px) + 54px); left: 10px; }
-.br-tl::before { top:0;left:0;width:2px;height:100%; }
-.br-tl::after  { top:0;left:0;width:100%;height:2px; }
-
-.br-tr { top: calc(env(safe-area-inset-top,0px) + 54px); right: 10px; }
-.br-tr::before { top:0;right:0;width:2px;height:100%; }
-.br-tr::after  { top:0;right:0;width:100%;height:2px; }
-
-.br-bl { bottom: calc(env(safe-area-inset-bottom,0px) + 90px); left: 10px; }
-.br-bl::before { bottom:0;left:0;width:2px;height:100%; }
-.br-bl::after  { bottom:0;left:0;width:100%;height:2px; }
-
-.br-br { bottom: calc(env(safe-area-inset-bottom,0px) + 90px); right: 10px; }
-.br-br::before { bottom:0;right:0;width:2px;height:100%; }
-.br-br::after  { bottom:0;right:0;width:100%;height:2px; }
-
-/* SCAN LINE */
-.scanline {
-position: fixed; left:0; right:0;
-height: 1.5px;
-background: linear-gradient(90deg, transparent, var(–accent2) 30%, var(–accent) 50%, var(–accent2) 70%, transparent);
-opacity: 0.3; z-index: 4;
-pointer-events: none;
-animation: scan 4s linear infinite;
-}
-@keyframes scan {
-0%   { top:5%; opacity:0; }
-5%   { opacity:0.3; }
-95%  { opacity:0.3; }
-100% { top:93%; opacity:0; }
-}
-
-/* LEFT SIDEBAR */
-.sidebar-left {
-position: fixed;
-left: 10px;
-top: 50%;
-transform: translateY(-50%);
-z-index: 10;
-display: flex;
-flex-direction: column;
-gap: 6px;
+/* ─── LEFT HUD ─── */
+.lhud {
+position: fixed; left: 10px; top: 50%; transform: translateY(-50%);
+z-index: 10; display: flex; flex-direction: column; gap: 5px;
 pointer-events: none;
 }
 
-.info-block {
-background: var(–bg-hud);
-border: 1px solid var(–border);
-border-radius: 2px;
+/* ─── RIGHT HUD ─── */
+.rhud {
+position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
+z-index: 10; display: flex; flex-direction: column; gap: 5px;
+pointer-events: none;
+}
+
+.hblock {
+background: var(–hud);
+border: 1px solid var(–bd);
 padding: 5px 7px;
-backdrop-filter: blur(8px);
--webkit-backdrop-filter: blur(8px);
+backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
 }
-.ib-label {
-font-family: var(–mono);
-font-size: 7px;
-color: rgba(0,255,200,0.35);
-letter-spacing: 1px;
-text-transform: uppercase;
+.hl { font-family: var(–mono); font-size: 7px; color: rgba(0,255,200,.35); letter-spacing: 1px; }
+.hv { font-family: var(–mono); font-size: 11px; color: var(–b); margin-top: 1px; }
+.hbig {
+font-family: var(–head); font-size: 20px; font-weight: 700;
+color: var(–g); text-shadow: 0 0 10px rgba(0,255,200,.4); line-height: 1.1;
 }
-.ib-val {
-font-family: var(–mono);
-font-size: 11px;
-color: var(–accent2);
-margin-top: 1px;
-}
+.hunit { font-family: var(–mono); font-size: 7px; color: rgba(0,255,200,.35); }
 
-.sig-bars {
-display: flex; align-items: flex-end;
-gap: 2px; height: 12px; margin-top: 2px;
+.sigbars { display: flex; align-items: flex-end; gap: 2px; height: 12px; margin-top: 2px; }
+.sb {
+width: 4px; border-radius: 1px;
+background: rgba(0,255,200,.1); transition: background .4s;
 }
-.sig-bar {
-width: 4px;
-background: rgba(0,255,200,0.12);
-border-radius: 1px;
-transition: background 0.4s;
-}
-.sig-bar.on { background: var(–accent); box-shadow: 0 0 3px var(–accent); }
-.sig-bar:nth-child(1){height:3px}
-.sig-bar:nth-child(2){height:6px}
-.sig-bar:nth-child(3){height:9px}
-.sig-bar:nth-child(4){height:12px}
+.sb.on { background: var(–g); box-shadow: 0 0 3px var(–g); }
+.sb:nth-child(1){height:3px} .sb:nth-child(2){height:6px}
+.sb:nth-child(3){height:9px} .sb:nth-child(4){height:12px}
 
-/* RIGHT SIDEBAR */
-.sidebar-right {
-position: fixed;
-right: 10px;
-top: 50%;
-transform: translateY(-50%);
-z-index: 10;
-display: flex;
-flex-direction: column;
-gap: 6px;
-pointer-events: none;
-}
-
-.stat-block {
-background: var(–bg-hud);
-border: 1px solid var(–border);
-border-radius: 2px;
-padding: 5px 8px;
-text-align: right;
-backdrop-filter: blur(8px);
--webkit-backdrop-filter: blur(8px);
-min-width: 62px;
-}
-.st-label {
-font-family: var(–mono);
-font-size: 7px;
-color: rgba(0,255,200,0.35);
-letter-spacing: 1px;
-text-transform: uppercase;
-}
-.st-val {
-font-family: var(–display);
-font-size: 20px;
-font-weight: 700;
-color: var(–accent);
-line-height: 1.1;
-text-shadow: 0 0 10px rgba(0,255,200,0.4);
-}
-.st-unit {
-font-family: var(–mono);
-font-size: 7px;
-color: rgba(0,255,200,0.4);
-}
-
-/* BOTTOM BAR */
-.hud-bottom {
-position: fixed;
-bottom: 0; left: 0; right: 0;
-z-index: 10;
-padding: 10px 16px calc(env(safe-area-inset-bottom, 10px) + 10px);
-background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 10px;
+/* ─── BOTTOM BAR ─── */
+.bot {
+position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+padding: 8px 16px calc(env(safe-area-inset-bottom,8px) + 8px);
+background: linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);
+display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
 
 .btn {
-background: var(–bg-hud);
-border: 1px solid var(–border);
-border-radius: 2px;
-padding: 9px 12px;
-color: var(–accent);
-font-family: var(–mono);
-font-size: 10px;
-letter-spacing: 1px;
-cursor: pointer;
-backdrop-filter: blur(8px);
--webkit-backdrop-filter: blur(8px);
-touch-action: manipulation;
-transition: background 0.15s;
--webkit-user-select: none; user-select: none;
+background: var(–hud); border: 1px solid var(–bd);
+padding: 9px 13px; color: var(–g);
+font-family: var(–mono); font-size: 10px; letter-spacing: 1px;
+cursor: pointer; touch-action: manipulation;
+backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+transition: background .15s;
+user-select: none; -webkit-user-select: none;
 display: flex; align-items: center; gap: 5px;
 white-space: nowrap;
 }
-.btn:active { background: rgba(0,255,200,0.18); }
-.btn-icon { font-size: 14px; }
+.btn:active { background: rgba(0,255,200,.18); }
+.btn-icon { font-size: 14px; line-height: 1; }
 
-.center-info {
-text-align: center;
-flex: 1;
-pointer-events: none;
+.ctr { text-align: center; flex: 1; pointer-events: none; }
+.big-n {
+font-family: var(–head); font-size: 34px; font-weight: 900;
+color: var(–g); text-shadow: 0 0 20px rgba(0,255,200,.5); line-height: 1;
 }
-.big-count {
-font-family: var(–display);
-font-size: 32px;
-font-weight: 900;
-color: var(–accent);
-text-shadow: 0 0 20px rgba(0,255,200,0.5);
-line-height: 1;
-}
-.big-label {
-font-family: var(–mono);
-font-size: 8px;
-color: rgba(0,255,200,0.45);
-letter-spacing: 2px;
-margin-top: 2px;
+.big-l {
+font-family: var(–mono); font-size: 8px;
+color: rgba(0,255,200,.4); letter-spacing: 2px; margin-top: 2px;
 }
 
-/* PERMISSION SCREEN */
-#permScreen {
-position: fixed; inset: 0;
-z-index: 100;
+/* ─── SPLASH / LOADING ─── */
+#splash {
+position: fixed; inset: 0; z-index: 100;
 background: #000;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 20px;
-transition: opacity 0.4s;
+display: flex; flex-direction: column;
+align-items: center; justify-content: center; gap: 18px;
+transition: opacity .5s ease;
 }
-#permScreen.fade { opacity: 0; pointer-events: none; }
+#splash.gone { opacity: 0; pointer-events: none; }
 
-.p-logo {
-font-family: var(–display);
-font-size: 24px;
-font-weight: 900;
-letter-spacing: 6px;
-color: var(–accent);
-text-shadow: 0 0 30px rgba(0,255,200,0.4);
+.sp-logo {
+font-family: var(–head); font-size: 26px; font-weight: 900;
+letter-spacing: 6px; color: var(–g);
+text-shadow: 0 0 30px rgba(0,255,200,.4);
 }
-.p-sub {
-font-family: var(–mono);
-font-size: 10px;
-color: rgba(0,255,200,0.35);
-letter-spacing: 3px;
+.sp-sub { font-family: var(–mono); font-size: 10px; color: rgba(0,255,200,.3); letter-spacing: 3px; }
+.sp-bar-wrap { width: 200px; height: 2px; background: rgba(0,255,200,.1); }
+.sp-bar {
+height: 100%; width: 0%;
+background: linear-gradient(90deg, var(–b), var(–g));
+box-shadow: 0 0 8px var(–g);
+transition: width .35s ease;
 }
-.p-track {
-width: 200px; height: 2px;
-background: rgba(0,255,200,0.1);
-overflow: hidden;
+.sp-msg { font-family: var(–mono); font-size: 10px; color: rgba(200,240,255,.4); letter-spacing: 1px; text-align: center; }
+.sp-btn {
+display: none;
+background: transparent; border: 1px solid var(–g);
+padding: 12px 32px; color: var(–g);
+font-family: var(–head); font-size: 11px; letter-spacing: 3px;
+cursor: pointer; touch-action: manipulation;
+box-shadow: 0 0 16px rgba(0,255,200,.12);
 }
-.p-fill {
-height: 100%;
-background: linear-gradient(90deg, var(–accent2), var(–accent));
-width: 0%; transition: width 0.4s ease;
-box-shadow: 0 0 8px var(–accent);
-}
-.p-msg {
-font-family: var(–mono);
-font-size: 10px;
-color: rgba(200,240,255,0.45);
-letter-spacing: 1px;
-text-align: center;
-line-height: 1.8;
-max-width: 220px;
-}
-.p-btn {
-background: transparent;
-border: 1px solid var(–accent);
-border-radius: 2px;
-padding: 12px 30px;
-color: var(–accent);
-font-family: var(–display);
-font-size: 11px;
-letter-spacing: 3px;
-cursor: pointer;
-touch-action: manipulation;
-box-shadow: 0 0 16px rgba(0,255,200,0.12);
-transition: background 0.2s;
-}
-.p-btn:active { background: rgba(0,255,200,0.1); }
+.sp-btn:active { background: rgba(0,255,200,.1); }
 
-/* NO CAMERA */
-#noCamera {
-display: none; position: fixed; inset: 0;
-z-index: 50; background: rgba(0,0,0,0.92);
-align-items: center; justify-content: center;
-font-family: var(–mono); font-size: 12px;
-color: rgba(200,240,255,0.5);
-text-align: center; padding: 32px; line-height: 2;
+/* ─── ERROR SCREEN ─── */
+#errScreen {
+display: none; position: fixed; inset: 0; z-index: 200;
+background: rgba(0,0,0,.95);
+flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+font-family: var(–mono); font-size: 12px; color: rgba(255,61,90,.7);
+text-align: center; padding: 24px; line-height: 2;
 }
-#noCamera.show { display: flex; }
+#errScreen.show { display: flex; }
+
+#errMsg { color: rgba(200,240,255,.5); font-size: 11px; }
+.err-retry {
+margin-top: 8px;
+background: transparent; border: 1px solid var(–r);
+padding: 10px 24px; color: var(–r);
+font-family: var(–mono); font-size: 11px; letter-spacing: 1px;
+cursor: pointer; touch-action: manipulation;
+}
 </style>
 
 </head>
 <body>
 
-<!-- Permission screen -->
+<!-- ── SPLASH ── -->
 
-<div id="permScreen">
-  <div class="p-logo">INVISPOSE</div>
-  <div class="p-sub">WIFI · DENSEPOSE · AR</div>
-  <div class="p-track"><div class="p-fill" id="pFill"></div></div>
-  <div class="p-msg" id="pMsg">LOADING POSE ENGINE...<br>PLEASE WAIT</div>
-  <button class="p-btn" id="startBtn" style="display:none" onclick="startCamera()">ENABLE CAMERA</button>
+<div id="splash">
+  <div class="sp-logo">INVISPOSE</div>
+  <div class="sp-sub">POSE · DETECTION · AR</div>
+  <div class="sp-bar-wrap"><div class="sp-bar" id="spBar"></div></div>
+  <div class="sp-msg" id="spMsg">LOADING AI ENGINE…</div>
+  <button class="sp-btn" id="spBtn" onclick="beginSession()">START CAMERA</button>
 </div>
 
-<!-- No camera fallback -->
+<!-- ── ERROR ── -->
 
-<div id="noCamera">CAMERA ACCESS REQUIRED<br>ALLOW PERMISSION AND RELOAD<br><br>HTTPS REQUIRED ON MOBILE</div>
+<div id="errScreen">
+  <div>⚠ CAMERA ERROR</div>
+  <div id="errMsg"></div>
+  <button class="err-retry" onclick="location.reload()">RETRY</button>
+</div>
 
-<!-- Camera -->
+<!-- ── CAMERA ── -->
 
-<video id="video" autoplay playsinline muted></video>
+<video id="vid" autoplay playsinline muted></video>
 
-<!-- Pose canvas -->
+<!-- ── CANVAS ── -->
 
-<canvas id="canvas"></canvas>
+<canvas id="cv"></canvas>
 
-<!-- Scanline -->
+<!-- ── DECORATIONS ── -->
 
-<div class="scanline"></div>
+<div class="scan"></div>
+<div class="cm tl"></div><div class="cm tr"></div>
+<div class="cm bl"></div><div class="cm br2"></div>
 
-<!-- Corner brackets -->
+<!-- ── TOP HUD ── -->
 
-<div class="br br-tl"></div>
-<div class="br br-tr"></div>
-<div class="br br-bl"></div>
-<div class="br br-br"></div>
-
-<!-- Top HUD -->
-
-<div class="hud-top">
+<div class="top">
   <div class="logo">
-    <div class="logo-mark"></div>
-    <div class="logo-text">INVISPOSE</div>
+    <div class="logo-dot"></div>
+    <div class="logo-name">INVISPOSE</div>
   </div>
   <div class="pills">
-    <div class="pill"><div class="dot"></div><span class="pill-live" id="fpsVal">--</span><span class="pill-dim">FPS</span></div>
-    <div class="pill"><span class="pill-live" id="confVal">--</span><span class="pill-dim">CONF</span></div>
-    <div class="pill"><span class="pill-live" id="connType">WIFI</span></div>
+    <div class="pill"><div class="blink"></div><span class="pv" id="hFps">--</span><span class="pd">FPS</span></div>
+    <div class="pill"><span class="pv" id="hConf">--</span><span class="pd">CONF</span></div>
+    <div class="pill"><span class="pv" id="hNet">WIFI</span></div>
   </div>
 </div>
 
-<!-- Left sidebar -->
+<!-- ── LEFT HUD ── -->
 
-<div class="sidebar-left">
-  <div class="info-block">
-    <div class="ib-label">SIGNAL</div>
-    <div class="sig-bars" id="sigBars">
-      <div class="sig-bar on"></div>
-      <div class="sig-bar on"></div>
-      <div class="sig-bar on"></div>
-      <div class="sig-bar"></div>
+<div class="lhud">
+  <div class="hblock">
+    <div class="hl">SIGNAL</div>
+    <div class="sigbars" id="sigbars">
+      <div class="sb on"></div><div class="sb on"></div>
+      <div class="sb on"></div><div class="sb"></div>
     </div>
   </div>
-  <div class="info-block">
-    <div class="ib-label">SPEED</div>
-    <div class="ib-val" id="dlVal">—</div>
+  <div class="hblock">
+    <div class="hl">DOWNLINK</div>
+    <div class="hv" id="hDl">—</div>
   </div>
-  <div class="info-block">
-    <div class="ib-label">RTT</div>
-    <div class="ib-val" id="rttVal">—</div>
+  <div class="hblock">
+    <div class="hl">RTT</div>
+    <div class="hv" id="hRtt">—</div>
   </div>
-  <div class="info-block">
-    <div class="ib-label">MODE</div>
-    <div class="ib-val" id="modeVal">REAR</div>
-  </div>
-</div>
-
-<!-- Right sidebar -->
-
-<div class="sidebar-right">
-  <div class="stat-block">
-    <div class="st-label">PERSONS</div>
-    <div class="st-val" id="personStat">0</div>
-  </div>
-  <div class="stat-block">
-    <div class="st-label">KEYPTS</div>
-    <div class="st-val" id="kpStat">0</div>
-  </div>
-  <div class="stat-block">
-    <div class="st-label">LAT</div>
-    <div class="st-val" id="latStat">--</div>
-    <div class="st-unit">ms</div>
+  <div class="hblock">
+    <div class="hl">CAM</div>
+    <div class="hv" id="hCam">REAR</div>
   </div>
 </div>
 
-<!-- Bottom bar -->
+<!-- ── RIGHT HUD ── -->
 
-<div class="hud-bottom">
-  <button class="btn" onclick="flipCamera()">
+<div class="rhud">
+  <div class="hblock" style="text-align:right">
+    <div class="hl">PERSONS</div>
+    <div class="hbig" id="hPersn">0</div>
+  </div>
+  <div class="hblock" style="text-align:right">
+    <div class="hl">KEYPTS</div>
+    <div class="hbig" id="hKp">0</div>
+  </div>
+  <div class="hblock" style="text-align:right">
+    <div class="hl">LATENCY</div>
+    <div class="hbig" id="hLat">--</div>
+    <div class="hunit">ms</div>
+  </div>
+</div>
+
+<!-- ── BOTTOM BAR ── -->
+
+<div class="bot">
+  <button class="btn" id="flipBtn" onclick="flipCam()">
     <span class="btn-icon">🔄</span><span>FLIP</span>
   </button>
-  <div class="center-info">
-    <div class="big-count" id="personCount">0</div>
-    <div class="big-label">DETECTED</div>
+  <div class="ctr">
+    <div class="big-n" id="bigCount">0</div>
+    <div class="big-l">DETECTED</div>
   </div>
-  <button class="btn" onclick="toggleFX()">
-    <span class="btn-icon">✦</span><span id="fxLabel">FX ON</span>
+  <button class="btn" id="fxBtn" onclick="toggleFx()">
+    <span class="btn-icon">✦</span><span id="fxLbl">FX ON</span>
   </button>
 </div>
 
-<!-- Scripts -->
+<!-- TF.js + MoveNet -->
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.17.0/dist/tf-backend-webgl.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 
 <script>
-// ── POSE CONNECTIONS (MediaPipe 33-landmark model) ──
-const CONNECTIONS = [
-  [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10],
-  [11,12],[11,13],[13,15],[15,17],[15,19],[17,19],
-  [12,14],[14,16],[16,18],[16,20],[18,20],
-  [11,23],[12,24],[23,24],
-  [23,25],[25,27],[27,29],[27,31],[29,31],
-  [24,26],[26,28],[28,30],[28,32],[30,32]
+'use strict';
+
+// ── CONSTANTS ──
+const KEYPOINT_NAMES = [
+  'nose','left_eye','right_eye','left_ear','right_ear',
+  'left_shoulder','right_shoulder','left_elbow','right_elbow',
+  'left_wrist','right_wrist','left_hip','right_hip',
+  'left_knee','right_knee','left_ankle','right_ankle'
 ];
 
-function segColor(a, b) {
-  if (a <= 10 || b <= 10) return '#00ffc8';
-  if ((a>=11&&a<=22)||(b>=11&&b<=22)) {
-    if ((a<=12||b<=12)||(a==23||b==23)||(a==24||b==24)) return '#ffc844';
-    return '#00b8ff';
-  }
-  return '#ff6ec4';
-}
+const EDGES = [
+  [0,1],[0,2],[1,3],[2,4],               // face
+  [5,6],[5,7],[7,9],[6,8],[8,10],        // arms
+  [5,11],[6,12],[11,12],                 // torso
+  [11,13],[13,15],[12,14],[14,16]        // legs
+];
+
+const EDGE_COLORS = [
+  '#00ffc8','#00ffc8','#00ffc8','#00ffc8',          // face
+  '#ffd166','#00b8ff','#00b8ff','#00b8ff','#00b8ff', // arms
+  '#ffd166','#ffd166','#ffd166',                     // torso
+  '#ff6ec4','#ff6ec4','#ff6ec4','#ff6ec4'            // legs
+];
 
 // ── STATE ──
-const video  = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const ctx    = canvas.getContext('2d');
+const vid  = document.getElementById('vid');
+const cv   = document.getElementById('cv');
+const ctx  = cv.getContext('2d');
 
+let detector   = null;
 let facingMode = 'environment';
-let isMirror   = false;
+let stream     = null;
 let fxOn       = true;
-let frameCount = 0, lastFPSt = Date.now(), fps = 0;
-let mpPose, mpCamera, stream;
-let frameStart = 0;
+let running    = false;
+let afId       = null;
 
-// ── BOOT ──
-const bootSteps = [
-  [0,  'LOADING POSE ENGINE...'],
-  [25, 'COMPILING WASM...'],
-  [55, 'PREPARING NEURAL NET...'],
-  [80, 'READY'],
-];
-let bi = 0;
-function boot() {
-  if (bi >= bootSteps.length) {
-    document.getElementById('pFill').style.width = '80%';
-    document.getElementById('pMsg').textContent = 'READY · TAP TO BEGIN';
-    document.getElementById('startBtn').style.display = 'block';
-    return;
-  }
-  const [p, m] = bootSteps[bi++];
-  document.getElementById('pFill').style.width = p + '%';
-  document.getElementById('pMsg').textContent = m;
-  setTimeout(boot, 420 + Math.random()*300);
-}
-window.addEventListener('load', () => setTimeout(boot, 200));
+let frameCount = 0, lastFpsTime = 0, currentFps = 0;
+let frameTs    = 0;
 
 // ── RESIZE ──
 function resize() {
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
+  cv.width  = window.innerWidth;
+  cv.height = window.innerHeight;
 }
 resize();
 window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 
-// ── MEDIAPIPE INIT ──
-function initPose() {
-  mpPose = new Pose({
-    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
-  });
-  mpPose.setOptions({
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    enableSegmentation: false,
-    minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
-  });
-  mpPose.onResults(onResults);
+// ── BOOT SEQUENCE ──
+const bootSteps = [
+  [0,  'LOADING AI ENGINE…'],
+  [30, 'INITIALIZING WEBGL…'],
+  [55, 'LOADING MOVENET MODEL…'],
+  [80, 'WARMING UP…'],
+  [100,'READY']
+];
+
+function setProgress(pct, msg) {
+  document.getElementById('spBar').style.width = pct + '%';
+  document.getElementById('spMsg').textContent  = msg;
 }
 
-// ── START CAMERA ──
-async function startCamera() {
-  document.getElementById('startBtn').style.display = 'none';
-  document.getElementById('pMsg').textContent = 'REQUESTING CAMERA...';
-  document.getElementById('pFill').style.width = '90%';
-
+async function boot() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: facingMode }, width:{ideal:1280}, height:{ideal:720} },
-      audio: false
-    });
-    video.srcObject = stream;
+    setProgress(0,  'LOADING AI ENGINE…');
+    await new Promise(r => setTimeout(r, 200));
 
-    await new Promise(r => { video.onloadedmetadata = r; });
+    setProgress(30, 'INITIALIZING WEBGL…');
+    await tf.setBackend('webgl');
+    await tf.ready();
 
-    document.getElementById('pFill').style.width = '100%';
-    document.getElementById('pMsg').textContent = 'STARTING AI...';
+    setProgress(55, 'LOADING MOVENET MODEL…');
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        enableSmoothing: true,
+      }
+    );
 
-    initPose();
+    setProgress(80, 'WARMING UP…');
+    await new Promise(r => setTimeout(r, 300));
 
-    mpCamera = new Camera(video, {
-      onFrame: async () => { if (mpPose) { frameStart = Date.now(); await mpPose.send({ image: video }); } },
-      width: 1280, height: 720
-    });
-
-    await mpCamera.start();
-
-    const ps = document.getElementById('permScreen');
-    ps.classList.add('fade');
-    setTimeout(() => { ps.style.display = 'none'; }, 400);
-
-    readNetworkInfo();
+    setProgress(100, 'READY · TAP TO BEGIN');
+    document.getElementById('spBtn').style.display = 'block';
 
   } catch(e) {
-    console.error(e);
-    document.getElementById('noCamera').classList.add('show');
-    document.getElementById('permScreen').style.display = 'none';
+    setProgress(0, 'ERROR: ' + e.message);
+    console.error('Boot failed:', e);
   }
 }
 
-// ── POSE RESULTS ──
-function onResults(results) {
-  const W = canvas.width, H = canvas.height;
-  const now = Date.now();
-  const latency = now - frameStart;
+// ── CAMERA ──
+async function beginSession() {
+  document.getElementById('spBtn').style.display = 'none';
+  setProgress(100, 'OPENING CAMERA…');
+  await openCamera();
+}
 
-  // FPS counter
-  frameCount++;
-  if (now - lastFPSt >= 1000) {
-    fps = Math.round(frameCount * 1000 / (now - lastFPSt));
-    frameCount = 0; lastFPSt = now;
-    document.getElementById('fpsVal').textContent = fps;
+async function openCamera() {
+  // Stop any existing stream
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  if (afId) { cancelAnimationFrame(afId); afId = null; }
+  running = false;
+
+  // Constraints: prefer environment (rear) or user (front)
+  const constraints = {
+    audio: false,
+    video: {
+      facingMode: { ideal: facingMode },
+      width:  { ideal: 1280, min: 640 },
+      height: { ideal: 720,  min: 480 },
+      frameRate: { ideal: 30, min: 15 }
+    }
+  };
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch(e) {
+    // Fallback: try without facingMode constraint
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch(e2) {
+      showError('Camera denied or unavailable.<br>' + e2.message + '<br><br>Make sure you are on HTTPS and allowed camera access.');
+      return;
+    }
   }
 
-  ctx.save();
+  vid.srcObject = stream;
+  vid.muted = true;
+  vid.playsInline = true;
+
+  // Wait for video to be ready
+  await new Promise((resolve, reject) => {
+    vid.onloadedmetadata = () => {
+      vid.play().then(resolve).catch(reject);
+    };
+    vid.onerror = reject;
+    setTimeout(reject, 8000); // 8s timeout
+  }).catch(e => { showError('Video start failed: ' + e.message); return; });
+
+  if (!vid.videoWidth) {
+    // Give it another moment
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  // Update cam label
+  const track = stream.getVideoTracks()[0];
+  const settings = track ? track.getSettings() : {};
+  const isActuallyFront = (settings.facingMode === 'user') || (facingMode === 'user');
+  document.getElementById('hCam').textContent = isActuallyFront ? 'FRONT' : 'REAR';
+
+  // Hide splash
+  const splash = document.getElementById('splash');
+  splash.classList.add('gone');
+  setTimeout(() => { splash.style.display = 'none'; }, 500);
+
+  // Start detection loop
+  running = true;
+  lastFpsTime = performance.now();
+  detectLoop();
+}
+
+async function flipCam() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  document.getElementById('hCam').textContent = '…';
+  document.getElementById('flipBtn').disabled = true;
+  await openCamera();
+  document.getElementById('flipBtn').disabled = false;
+}
+
+// ── DETECTION LOOP ──
+async function detectLoop() {
+  if (!running) return;
+
+  frameTs = performance.now();
+
+  let poses = [];
+  try {
+    if (detector && vid.readyState >= 2 && vid.videoWidth > 0) {
+      poses = await detector.estimatePoses(vid, {
+        maxPoses: 5,
+        flipHorizontal: false,    // we handle mirroring in canvas draw
+        scoreThreshold: 0.3
+      });
+    }
+  } catch(e) {
+    // Transient error — just skip frame
+    console.warn('Detect error:', e);
+  }
+
+  const latency = Math.round(performance.now() - frameTs);
+
+  // FPS
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsTime >= 1000) {
+    currentFps = Math.round(frameCount * 1000 / (now - lastFpsTime));
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+
+  draw(poses, latency);
+
+  afId = requestAnimationFrame(detectLoop);
+}
+
+// ── DRAW ──
+function draw(poses, latency) {
+  const W = cv.width, H = cv.height;
+  const isFront = facingMode === 'user';
+  
   ctx.clearRect(0, 0, W, H);
 
-  if (isMirror) { ctx.scale(-1,1); ctx.translate(-W,0); }
-
-  // Vignette
+  // Vignette FX
   if (fxOn) {
-    const v = ctx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.8);
-    v.addColorStop(0,'transparent');
-    v.addColorStop(1,'rgba(0,4,8,0.45)');
-    ctx.fillStyle = v; ctx.fillRect(0,0,W,H);
+    const vig = ctx.createRadialGradient(W/2,H/2,H*.22,W/2,H/2,H*.82);
+    vig.addColorStop(0, 'transparent');
+    vig.addColorStop(1, 'rgba(0,3,8,.5)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
   }
 
-  const lm = results.poseLandmarks;
-  let visKP = 0, confSum = 0;
-
-  if (lm && lm.length) {
-    // Connections
-    ctx.lineCap = 'round';
-    for (const [a,b] of CONNECTIONS) {
-      const ka = lm[a], kb = lm[b];
-      if (!ka||!kb||ka.visibility<0.3||kb.visibility<0.3) continue;
-      const ax=ka.x*W, ay=ka.y*H, bx=kb.x*W, by=kb.y*H;
-      const col = segColor(a,b);
-      const vis = (ka.visibility+kb.visibility)/2;
-
-      if (fxOn) {
-        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
-        ctx.strokeStyle = col+'28'; ctx.lineWidth = 12; ctx.stroke();
-      }
-
-      const g = ctx.createLinearGradient(ax,ay,bx,by);
-      const alpha = Math.round(vis*210).toString(16).padStart(2,'0');
-      g.addColorStop(0, col+alpha);
-      g.addColorStop(1, col+Math.round(vis*140).toString(16).padStart(2,'0'));
-      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
-      ctx.strokeStyle = g; ctx.lineWidth = 3; ctx.stroke();
-    }
-
-    // Keypoints
-    for (let i=0; i<lm.length; i++) {
-      const k = lm[i];
-      if (k.visibility < 0.3) continue;
-      visKP++; confSum += k.visibility;
-      const px=k.x*W, py=k.y*H;
-      const col = segColor(i,i);
-      const r = i < 11 ? 4 : 5;
-
-      if (fxOn) {
-        ctx.beginPath(); ctx.arc(px,py,r+6,0,Math.PI*2);
-        ctx.fillStyle=col+'18'; ctx.fill();
-      }
-      ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
-      ctx.fillStyle = col;
-      if(fxOn){ctx.shadowColor=col;ctx.shadowBlur=8;}
-      ctx.fill();
-      ctx.shadowBlur=0;
-    }
-
-    // Label above head (landmark 0 = nose)
-    const nose = lm[0];
-    if (nose && nose.visibility > 0.4) {
-      const tx = nose.x*W, ty = nose.y*H - 22;
-      const conf = visKP ? Math.round(confSum/visKP*100) : 0;
-      const label = `PERSON · ${conf}%`;
-      const lw = label.length * 6.2;
-
-      ctx.fillStyle = 'rgba(0,10,15,0.75)';
-      ctx.fillRect(tx-lw/2-6, ty-15, lw+12, 16);
-      ctx.strokeStyle = 'rgba(0,255,200,0.55)'; ctx.lineWidth=0.8;
-      ctx.strokeRect(tx-lw/2-6, ty-15, lw+12, 16);
-      ctx.fillStyle='#00ffc8';
-      ctx.font='10px "Share Tech Mono"';
-      ctx.textAlign='center';
-      ctx.fillText(label, tx, ty-2);
-      ctx.textAlign='left';
-    }
-
-    // Bounding dashes
-    const xs = lm.filter(k=>k.visibility>0.5).map(k=>k.x*W);
-    const ys = lm.filter(k=>k.visibility>0.5).map(k=>k.y*H);
-    if (xs.length > 4) {
-      const minX=Math.min(...xs)-12, maxX=Math.max(...xs)+12;
-      const minY=Math.min(...ys)-12, maxY=Math.max(...ys)+12;
-      ctx.strokeStyle='rgba(0,255,200,0.18)';
-      ctx.lineWidth=1; ctx.setLineDash([5,4]);
-      ctx.strokeRect(minX,minY,maxX-minX,maxY-minY);
-      ctx.setLineDash([]);
-    }
-
-    // Update HUD
-    const conf2 = visKP ? Math.round(confSum/visKP*100)+'%' : '--';
-    document.getElementById('personCount').textContent = '1';
-    document.getElementById('personStat').textContent  = '1';
-    document.getElementById('confVal').textContent     = conf2;
-    document.getElementById('kpStat').textContent      = visKP;
-    document.getElementById('latStat').textContent     = latency;
-
-  } else {
-    // No pose — searching pulse
+  if (!poses || poses.length === 0) {
+    // Searching pulse
     if (fxOn) {
-      const cx=W/2, cy=H/2;
-      const t = Date.now()/500;
-      for (let i=0;i<3;i++) {
-        const r = 30 + i*25 + Math.sin(t+i)*8;
-        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-        ctx.strokeStyle=`rgba(0,255,200,${0.06-i*0.015})`;
-        ctx.lineWidth=1.5; ctx.stroke();
+      const cx = W/2, cy = H/2;
+      const t  = (performance.now() / 600) % (Math.PI * 2);
+      for (let i = 0; i < 3; i++) {
+        const r = 28 + i*24 + Math.sin(t + i*1.2)*7;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(0,255,200,${.07 - i*.02})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
     }
-    document.getElementById('personCount').textContent = '0';
-    document.getElementById('personStat').textContent  = '0';
-    document.getElementById('confVal').textContent     = '--';
-    document.getElementById('kpStat').textContent      = '0';
-    document.getElementById('latStat').textContent     = latency;
+    updateHud(0, 0, '--', latency);
+    return;
   }
 
-  ctx.restore();
+  let totalVis = 0, confSum = 0, confN = 0;
+
+  for (let pi = 0; pi < poses.length; pi++) {
+    const kps = poses[pi].keypoints;
+    if (!kps || kps.length === 0) continue;
+
+    // Mirror x for front camera
+    const mx = (x) => isFront ? (W - x) : x;
+
+    // Count visible keypoints
+    let visKp = 0, localConf = 0;
+    for (const kp of kps) {
+      if ((kp.score || 0) >= 0.3) { visKp++; localConf += (kp.score || 0); confN++; confSum += (kp.score||0); }
+    }
+    if (visKp < 3) continue;
+    totalVis += visKp;
+
+    // ── Draw skeleton edges ──
+    ctx.lineCap = 'round';
+    for (let ei = 0; ei < EDGES.length; ei++) {
+      const [a, b] = EDGES[ei];
+      const ka = kps[a], kb = kps[b];
+      if (!ka || !kb) continue;
+      if ((ka.score||0) < 0.3 || (kb.score||0) < 0.3) continue;
+
+      const ax = mx(ka.x), ay = ka.y;
+      const bx = mx(kb.x), by = kb.y;
+      const col = EDGE_COLORS[ei];
+      const vis = ((ka.score||0) + (kb.score||0)) / 2;
+
+      // Glow pass
+      if (fxOn) {
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+        ctx.strokeStyle = col + '2a';
+        ctx.lineWidth = 12;
+        ctx.stroke();
+      }
+
+      // Main line
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+      ctx.strokeStyle = col + Math.round(vis * 220).toString(16).padStart(2,'0');
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    // ── Draw keypoints ──
+    for (const kp of kps) {
+      if ((kp.score||0) < 0.3) continue;
+      const px = mx(kp.x), py = kp.y;
+      const col = kpColor(kp.name || '');
+      const r = (kp.name || '').includes('eye') || (kp.name || '').includes('ear') ? 3 : 5;
+
+      if (fxOn) {
+        ctx.beginPath(); ctx.arc(px, py, r + 5, 0, Math.PI*2);
+        ctx.fillStyle = col + '20'; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2);
+      ctx.fillStyle = col;
+      if (fxOn) { ctx.shadowColor = col; ctx.shadowBlur = 8; }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // ── Bounding box + label ──
+    const visKps = kps.filter(k => (k.score||0) >= 0.3);
+    if (visKps.length >= 4) {
+      const xs = visKps.map(k => mx(k.x));
+      const ys = visKps.map(k => k.y);
+      const x1 = Math.min(...xs) - 12, y1 = Math.min(...ys) - 16;
+      const x2 = Math.max(...xs) + 12, y2 = Math.max(...ys) + 12;
+      const bw = x2 - x1, bh = y2 - y1;
+
+      ctx.strokeStyle = 'rgba(0,255,200,.15)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5,4]);
+      ctx.strokeRect(x1, y1, bw, bh);
+      ctx.setLineDash([]);
+
+      // Label at top of box
+      const conf = Math.round((localConf / visKp) * 100);
+      const label = `PERSON ${pi + 1} · ${conf}%`;
+      const lw = ctx.measureText(label).width;
+      const lx = x1 + bw/2, ly = y1 - 4;
+
+      ctx.fillStyle = 'rgba(0,8,14,.8)';
+      ctx.fillRect(lx - lw/2 - 6, ly - 15, lw + 12, 15);
+      ctx.strokeStyle = 'rgba(0,255,200,.5)';
+      ctx.lineWidth = .7;
+      ctx.strokeRect(lx - lw/2 - 6, ly - 15, lw + 12, 15);
+
+      ctx.fillStyle = '#00ffc8';
+      ctx.font = '10px "Share Tech Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, lx, ly - 4);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  const avgConf = confN > 0 ? Math.round(confSum / confN * 100) + '%' : '--';
+  updateHud(poses.length, totalVis, avgConf, latency);
 }
 
-// ── CONTROLS ──
-async function flipCamera() {
-  facingMode = facingMode==='environment' ? 'user' : 'environment';
-  isMirror   = facingMode==='user';
-  video.classList.toggle('mirror', isMirror);
-  document.getElementById('modeVal').textContent = isMirror ? 'FRONT' : 'REAR';
-
-  if (mpCamera) mpCamera.stop();
-  if (stream) stream.getTracks().forEach(t=>t.stop());
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:{ideal:facingMode}, width:{ideal:1280}, height:{ideal:720} }, audio:false
-  });
-  video.srcObject = stream;
-
-  mpCamera = new Camera(video, {
-    onFrame: async()=>{ if(mpPose){ frameStart=Date.now(); await mpPose.send({image:video}); } },
-    width:1280, height:720
-  });
-  mpCamera.start();
+function kpColor(name) {
+  if (name.includes('eye') || name.includes('ear') || name === 'nose') return '#00ffc8';
+  if (name.includes('shoulder') || name.includes('hip'))               return '#ffd166';
+  if (name.includes('elbow') || name.includes('wrist'))                return '#00b8ff';
+  return '#ff6ec4';
 }
 
-function toggleFX() {
+function updateHud(persons, kps, conf, latency) {
+  document.getElementById('hFps').textContent    = currentFps || '--';
+  document.getElementById('hConf').textContent   = conf;
+  document.getElementById('hPersn').textContent  = persons;
+  document.getElementById('hKp').textContent     = kps;
+  document.getElementById('hLat').textContent    = latency;
+  document.getElementById('bigCount').textContent = persons;
+}
+
+// ── FX TOGGLE ──
+function toggleFx() {
   fxOn = !fxOn;
-  document.getElementById('fxLabel').textContent = fxOn ? 'FX ON' : 'FX OFF';
+  document.getElementById('fxLbl').textContent = fxOn ? 'FX ON' : 'FX OFF';
 }
 
 // ── NETWORK INFO ──
-function readNetworkInfo() {
-  const c = navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+function readNet() {
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if (!c) return;
-  const type = c.effectiveType||c.type||'wifi';
-  document.getElementById('connType').textContent = type.toUpperCase();
+  const type = (c.effectiveType || c.type || 'wifi').toUpperCase();
+  document.getElementById('hNet').textContent = type;
   if (c.downlink) {
-    document.getElementById('dlVal').textContent = c.downlink.toFixed(1)+'Mb';
-    const lv = Math.min(4,Math.ceil(c.downlink/15));
-    document.querySelectorAll('.sig-bar').forEach((b,i)=>b.classList.toggle('on',i<lv));
+    document.getElementById('hDl').textContent = c.downlink.toFixed(1) + ' Mb';
+    const lv = Math.min(4, Math.ceil(c.downlink / 15));
+    document.querySelectorAll('.sb').forEach((b,i) => b.classList.toggle('on', i < lv));
   }
-  if (c.rtt) document.getElementById('rttVal').textContent = c.rtt+'ms';
-  c.addEventListener('change', readNetworkInfo);
+  if (c.rtt != null) document.getElementById('hRtt').textContent = c.rtt + 'ms';
+  c.onchange = readNet;
 }
+
+// ── ERROR ──
+function showError(msg) {
+  const s = document.getElementById('errScreen');
+  document.getElementById('errMsg').innerHTML = msg;
+  s.classList.add('show');
+}
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  readNet();
+  boot();
+});
 </script>
 
 </body>
