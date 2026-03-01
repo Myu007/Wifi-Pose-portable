@@ -3,1701 +3,815 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WiFi DensePose — InvisPose</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>InvisPose</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
 :root {
-–bg: #020b0f;
-–bg2: #040f14;
-–bg3: #071820;
-–panel: #081620;
-–panel2: #0a1e2c;
-–border: #0d3348;
-–border2: #1a5a7a;
-–accent: #00f5c4;
+–accent: #00ffc8;
 –accent2: #00b8ff;
-–accent3: #ff4060;
-–accent4: #ffd700;
-–text: #c8e8f4;
-–text2: #6a9ab0;
-–text3: #3a6070;
+–red: #ff3d5a;
+–gold: #ffc844;
+–bg-hud: rgba(0,10,15,0.72);
+–border: rgba(0,255,200,0.25);
 –mono: ‘Share Tech Mono’, monospace;
 –display: ‘Orbitron’, sans-serif;
-–ui: ‘Rajdhani’, sans-serif;
-–glow: 0 0 20px rgba(0,245,196,0.3);
-–glow2: 0 0 20px rgba(0,184,255,0.3);
 }
 
-- { margin:0; padding:0; box-sizing:border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-background: var(–bg);
-color: var(–text);
-font-family: var(–ui);
-min-height: 100vh;
-overflow-x: hidden;
+html, body {
+width: 100%; height: 100%;
+overflow: hidden;
+position: fixed;
+background: #000;
+-webkit-tap-highlight-color: transparent;
+touch-action: none;
 }
 
-/* Scan line effect */
-body::before {
-content:’’;
-position:fixed;
-inset:0;
-background: repeating-linear-gradient(
-0deg,
-transparent,
-transparent 2px,
-rgba(0,0,0,0.03) 2px,
-rgba(0,0,0,0.03) 4px
-);
-pointer-events:none;
-z-index:9999;
+#video {
+position: fixed;
+inset: 0;
+width: 100%; height: 100%;
+object-fit: cover;
+z-index: 0;
+}
+#video.mirror { transform: scaleX(-1); }
+
+#canvas {
+position: fixed;
+inset: 0;
+width: 100%; height: 100%;
+z-index: 1;
+pointer-events: none;
 }
 
-/* Grid bg */
-body::after {
-content:’’;
-position:fixed;
-inset:0;
-background-image:
-linear-gradient(rgba(0,184,255,0.03) 1px, transparent 1px),
-linear-gradient(90deg, rgba(0,184,255,0.03) 1px, transparent 1px);
-background-size: 40px 40px;
-pointer-events:none;
-z-index:0;
-}
-
-/* ─── TOP BAR ─── */
-.topbar {
-position: sticky;
-top: 0;
-z-index: 100;
-background: rgba(2,11,15,0.95);
-backdrop-filter: blur(10px);
-border-bottom: 1px solid var(–border2);
+/* TOP BAR */
+.hud-top {
+position: fixed;
+top: 0; left: 0; right: 0;
+z-index: 10;
+padding: env(safe-area-inset-top, 10px) 14px 10px;
+background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
 display: flex;
 align-items: center;
 justify-content: space-between;
-padding: 0 24px;
-height: 58px;
-box-shadow: 0 2px 30px rgba(0,0,0,0.8);
+gap: 8px;
 }
 
 .logo {
 display: flex;
 align-items: center;
-gap: 12px;
+gap: 8px;
+flex-shrink: 0;
 }
 
-.logo-icon {
-width: 36px;
-height: 36px;
+.logo-mark {
+width: 26px; height: 26px;
+border: 1.5px solid var(–accent);
+border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+box-shadow: 0 0 10px rgba(0,255,200,0.4);
 position: relative;
 }
+.logo-mark::after {
+content: ‘’;
+position: absolute;
+inset: 4px;
+border-radius: 50%;
+background: var(–accent);
+opacity: 0.7;
+animation: corePulse 2s ease-in-out infinite;
+}
+@keyframes corePulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
 
 .logo-text {
 font-family: var(–display);
-font-size: 14px;
+font-size: 12px;
 font-weight: 700;
-color: var(–accent);
 letter-spacing: 3px;
-text-shadow: var(–glow);
+color: var(–accent);
+text-shadow: 0 0 14px rgba(0,255,200,0.6);
 }
 
-.logo-sub {
+.pills {
+display: flex;
+align-items: center;
+gap: 5px;
+flex-wrap: wrap;
+justify-content: flex-end;
+}
+
+.pill {
+display: flex;
+align-items: center;
+gap: 4px;
+padding: 3px 7px;
+background: var(–bg-hud);
+border: 1px solid var(–border);
+border-radius: 2px;
 font-family: var(–mono);
-font-size: 9px;
-color: var(–text3);
-letter-spacing: 2px;
+font-size: 10px;
+letter-spacing: 0.5px;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+white-space: nowrap;
+}
+.pill-live { color: var(–accent); }
+.pill-dim  { color: rgba(0,255,200,0.45); }
+
+.dot {
+width: 5px; height: 5px;
+border-radius: 50%;
+background: var(–accent);
+box-shadow: 0 0 5px var(–accent);
+animation: blink 1.4s ease-in-out infinite;
+flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
+
+/* CORNER BRACKETS */
+.br {
+position: fixed;
+width: 18px; height: 18px;
+z-index: 5;
+pointer-events: none;
+}
+.br::before, .br::after {
+content: ‘’;
+position: absolute;
+background: var(–accent);
+opacity: 0.6;
+}
+.br-tl { top: calc(env(safe-area-inset-top,0px) + 54px); left: 10px; }
+.br-tl::before { top:0;left:0;width:2px;height:100%; }
+.br-tl::after  { top:0;left:0;width:100%;height:2px; }
+
+.br-tr { top: calc(env(safe-area-inset-top,0px) + 54px); right: 10px; }
+.br-tr::before { top:0;right:0;width:2px;height:100%; }
+.br-tr::after  { top:0;right:0;width:100%;height:2px; }
+
+.br-bl { bottom: calc(env(safe-area-inset-bottom,0px) + 90px); left: 10px; }
+.br-bl::before { bottom:0;left:0;width:2px;height:100%; }
+.br-bl::after  { bottom:0;left:0;width:100%;height:2px; }
+
+.br-br { bottom: calc(env(safe-area-inset-bottom,0px) + 90px); right: 10px; }
+.br-br::before { bottom:0;right:0;width:2px;height:100%; }
+.br-br::after  { bottom:0;right:0;width:100%;height:2px; }
+
+/* SCAN LINE */
+.scanline {
+position: fixed; left:0; right:0;
+height: 1.5px;
+background: linear-gradient(90deg, transparent, var(–accent2) 30%, var(–accent) 50%, var(–accent2) 70%, transparent);
+opacity: 0.3; z-index: 4;
+pointer-events: none;
+animation: scan 4s linear infinite;
+}
+@keyframes scan {
+0%   { top:5%; opacity:0; }
+5%   { opacity:0.3; }
+95%  { opacity:0.3; }
+100% { top:93%; opacity:0; }
+}
+
+/* LEFT SIDEBAR */
+.sidebar-left {
+position: fixed;
+left: 10px;
+top: 50%;
+transform: translateY(-50%);
+z-index: 10;
+display: flex;
+flex-direction: column;
+gap: 6px;
+pointer-events: none;
+}
+
+.info-block {
+background: var(–bg-hud);
+border: 1px solid var(–border);
+border-radius: 2px;
+padding: 5px 7px;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+}
+.ib-label {
+font-family: var(–mono);
+font-size: 7px;
+color: rgba(0,255,200,0.35);
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+.ib-val {
+font-family: var(–mono);
+font-size: 11px;
+color: var(–accent2);
 margin-top: 1px;
 }
 
-.topbar-center {
-display: flex;
-align-items: center;
-gap: 24px;
+.sig-bars {
+display: flex; align-items: flex-end;
+gap: 2px; height: 12px; margin-top: 2px;
 }
-
-.status-pill {
-display: flex;
-align-items: center;
-gap: 6px;
-background: rgba(0,245,196,0.08);
-border: 1px solid rgba(0,245,196,0.2);
-border-radius: 2px;
-padding: 4px 12px;
-font-family: var(–mono);
-font-size: 11px;
-color: var(–accent);
-letter-spacing: 1px;
-}
-
-.status-dot {
-width: 6px;
-height: 6px;
-border-radius: 50%;
-background: var(–accent);
-box-shadow: 0 0 8px var(–accent);
-animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-0%,100% { opacity:1; }
-50% { opacity:0.3; }
-}
-
-.topbar-right {
-display: flex;
-align-items: center;
-gap: 20px;
-font-family: var(–mono);
-font-size: 11px;
-color: var(–text2);
-}
-
-.live-clock {
-color: var(–accent2);
-letter-spacing: 1px;
-}
-
-/* ─── LAYOUT ─── */
-.app {
-position: relative;
-z-index: 1;
-display: grid;
-grid-template-columns: 260px 1fr 300px;
-grid-template-rows: auto;
-gap: 12px;
-padding: 12px;
-min-height: calc(100vh - 58px);
-}
-
-/* ─── PANEL BASE ─── */
-.panel {
-background: var(–panel);
-border: 1px solid var(–border);
-position: relative;
-overflow: hidden;
-}
-
-.panel::before {
-content:’’;
-position:absolute;
-top:0;left:0;right:0;
-height:1px;
-background: linear-gradient(90deg, transparent, var(–border2), transparent);
-}
-
-.panel-header {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 10px 16px;
-border-bottom: 1px solid var(–border);
-background: rgba(0,0,0,0.2);
-}
-
-.panel-title {
-font-family: var(–display);
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–text2);
-text-transform: uppercase;
-}
-
-.panel-badge {
-font-family: var(–mono);
-font-size: 9px;
-padding: 2px 6px;
-border: 1px solid var(–border2);
-color: var(–accent2);
-letter-spacing: 1px;
-}
-
-/* ─── LEFT SIDEBAR ─── */
-.sidebar-left {
-display: flex;
-flex-direction: column;
-gap: 12px;
-}
-
-/* WiFi Info */
-.wifi-panel { }
-
-.wifi-visual {
-padding: 20px 16px;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 16px;
-}
-
-.wifi-rings {
-position: relative;
-width: 120px;
-height: 80px;
-display: flex;
-align-items: flex-end;
-justify-content: center;
-}
-
-.wifi-ring {
-position: absolute;
-bottom: 0;
-border-radius: 50% 50% 0 0;
-border: 2px solid var(–accent);
-border-bottom: none;
-opacity: 0;
-animation: wifiArc 2s ease-in-out infinite;
-}
-.wifi-ring:nth-child(1) { width:24px; height:12px; animation-delay:0s; opacity:1; }
-.wifi-ring:nth-child(2) { width:54px; height:27px; animation-delay:0.2s; }
-.wifi-ring:nth-child(3) { width:84px; height:42px; animation-delay:0.4s; }
-.wifi-ring:nth-child(4) { width:114px; height:57px; animation-delay:0.6s; }
-
-@keyframes wifiArc {
-0% { opacity:0; }
-20% { opacity:0.9; }
-60% { opacity:0.6; }
-100% { opacity:0; }
-}
-
-.wifi-dot {
-width: 8px;
-height: 8px;
-border-radius: 50%;
-background: var(–accent);
-box-shadow: var(–glow);
-position: absolute;
-bottom: -4px;
-}
-
-.wifi-info-grid {
-width: 100%;
-display: grid;
-gap: 8px;
-padding: 0 4px;
-}
-
-.info-row {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding: 6px 0;
-border-bottom: 1px solid var(–border);
-}
-
-.info-label {
-font-family: var(–mono);
-font-size: 10px;
-color: var(–text3);
-letter-spacing: 1px;
-}
-
-.info-val {
-font-family: var(–mono);
-font-size: 11px;
-color: var(–accent2);
-text-align: right;
-}
-
-/* Signal strength bar */
-.signal-bar {
-display: flex;
-align-items: flex-end;
-gap: 2px;
-height: 18px;
-}
-
 .sig-bar {
-width: 5px;
-background: var(–border);
+width: 4px;
+background: rgba(0,255,200,0.12);
 border-radius: 1px;
-transition: background 0.3s;
+transition: background 0.4s;
 }
+.sig-bar.on { background: var(–accent); box-shadow: 0 0 3px var(–accent); }
+.sig-bar:nth-child(1){height:3px}
+.sig-bar:nth-child(2){height:6px}
+.sig-bar:nth-child(3){height:9px}
+.sig-bar:nth-child(4){height:12px}
 
-.sig-bar.active { background: var(–accent); box-shadow: 0 0 4px var(–accent); }
-.sig-bar:nth-child(1) { height: 4px; }
-.sig-bar:nth-child(2) { height: 7px; }
-.sig-bar:nth-child(3) { height: 10px; }
-.sig-bar:nth-child(4) { height: 13px; }
-.sig-bar:nth-child(5) { height: 16px; }
-
-/* CSI Metrics */
-.metrics-panel {}
-
-.metric-item {
-padding: 12px 16px;
-border-bottom: 1px solid var(–border);
+/* RIGHT SIDEBAR */
+.sidebar-right {
+position: fixed;
+right: 10px;
+top: 50%;
+transform: translateY(-50%);
+z-index: 10;
 display: flex;
 flex-direction: column;
 gap: 6px;
+pointer-events: none;
 }
 
-.metric-label {
+.stat-block {
+background: var(–bg-hud);
+border: 1px solid var(–border);
+border-radius: 2px;
+padding: 5px 8px;
+text-align: right;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+min-width: 62px;
+}
+.st-label {
 font-family: var(–mono);
-font-size: 9px;
-color: var(–text3);
-letter-spacing: 2px;
+font-size: 7px;
+color: rgba(0,255,200,0.35);
+letter-spacing: 1px;
 text-transform: uppercase;
 }
-
-.metric-value {
+.st-val {
 font-family: var(–display);
-font-size: 22px;
+font-size: 20px;
 font-weight: 700;
 color: var(–accent);
-text-shadow: var(–glow);
-line-height: 1;
+line-height: 1.1;
+text-shadow: 0 0 10px rgba(0,255,200,0.4);
 }
-
-.metric-unit {
-font-size: 10px;
+.st-unit {
 font-family: var(–mono);
-color: var(–text3);
-margin-left: 4px;
+font-size: 7px;
+color: rgba(0,255,200,0.4);
 }
 
-.metric-bar-track {
-height: 3px;
-background: var(–border);
-border-radius: 2px;
-overflow: hidden;
-}
-
-.metric-bar-fill {
-height: 100%;
-background: linear-gradient(90deg, var(–accent2), var(–accent));
-border-radius: 2px;
-transition: width 0.5s ease;
-}
-
-/* Zone selector */
-.zones-panel {}
-
-.zone-list { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
-
-.zone-item {
-display: flex;
-align-items: center;
-justify-content: space-between;
-padding: 8px 10px;
-border: 1px solid var(–border);
-cursor: pointer;
-transition: all 0.2s;
-font-family: var(–ui);
-font-size: 13px;
-font-weight: 500;
-color: var(–text2);
-}
-
-.zone-item:hover, .zone-item.active {
-border-color: var(–accent);
-background: rgba(0,245,196,0.05);
-color: var(–accent);
-}
-
-.zone-dot {
-width: 8px; height: 8px;
-border-radius: 50%;
-background: var(–text3);
-}
-.zone-item.active .zone-dot {
-background: var(–accent);
-box-shadow: 0 0 8px var(–accent);
-}
-
-.zone-count {
-font-family: var(–mono);
-font-size: 11px;
-color: var(–text3);
-}
-.zone-item.active .zone-count { color: var(–accent); }
-
-/* ─── MAIN CENTER ─── */
-.main-center {
-display: flex;
-flex-direction: column;
-gap: 12px;
-}
-
-/* Pose canvas area */
-.pose-panel {
-flex: 1;
-position: relative;
-min-height: 400px;
-}
-
-.pose-canvas-wrap {
-position: relative;
-width: 100%;
-height: 100%;
-min-height: 400px;
-}
-
-#poseCanvas {
-width: 100%;
-height: 100%;
-display: block;
-}
-
-.canvas-overlay {
-position: absolute;
-inset: 0;
-pointer-events: none;
-}
-
-/* Corner decorations */
-.corner {
-position: absolute;
-width: 16px; height: 16px;
-border-color: var(–accent);
-border-style: solid;
-opacity: 0.6;
-}
-.corner-tl { top:8px; left:8px; border-width: 2px 0 0 2px; }
-.corner-tr { top:8px; right:8px; border-width: 2px 2px 0 0; }
-.corner-bl { bottom:8px; left:8px; border-width: 0 0 2px 2px; }
-.corner-br { bottom:8px; right:8px; border-width: 0 2px 2px 0; }
-
-.scanning-line {
-position: absolute;
-left: 0; right: 0;
-height: 2px;
-background: linear-gradient(90deg, transparent, var(–accent2), var(–accent), var(–accent2), transparent);
-opacity: 0.6;
-animation: scanMove 3s linear infinite;
-top: 0;
-}
-
-@keyframes scanMove {
-0% { top: 0%; }
-100% { top: 100%; }
-}
-
-/* Person labels */
-.pose-label {
-position: absolute;
-font-family: var(–mono);
-font-size: 10px;
-color: var(–accent);
-background: rgba(0,245,196,0.1);
-border: 1px solid rgba(0,245,196,0.3);
-padding: 2px 6px;
-letter-spacing: 1px;
-pointer-events: none;
-white-space: nowrap;
-}
-
-/* Waveform panel */
-.wave-panel { height: 100px; }
-
-#waveCanvas {
-width: 100%;
-height: 100%;
-display: block;
-}
-
-/* ─── RIGHT SIDEBAR ─── */
-.sidebar-right {
-display: flex;
-flex-direction: column;
-gap: 12px;
-}
-
-/* Detected persons */
-.persons-panel {}
-
-.person-card {
-padding: 12px 16px;
-border-bottom: 1px solid var(–border);
-display: grid;
-grid-template-columns: 40px 1fr auto;
-align-items: center;
-gap: 10px;
-cursor: pointer;
-transition: background 0.2s;
-}
-
-.person-card:hover { background: rgba(0,184,255,0.03); }
-
-.person-avatar {
-width: 40px; height: 40px;
-border: 1px solid var(–border2);
-display: flex;
-align-items: center;
-justify-content: center;
-position: relative;
-overflow: hidden;
-}
-
-.avatar-canvas { width: 100%; height: 100%; }
-
-.person-info {}
-.person-id { font-family: var(–display); font-size: 11px; color: var(–accent2); letter-spacing: 1px; }
-.person-activity { font-family: var(–ui); font-size: 12px; color: var(–text2); margin-top: 2px; }
-.person-conf { font-family: var(–mono); font-size: 10px; color: var(–accent); }
-
-/* Analytics */
-.analytics-panel {}
-
-.analytic-item {
-padding: 10px 16px;
-border-bottom: 1px solid var(–border);
-display: flex;
-justify-content: space-between;
-align-items: center;
-}
-
-.analytic-label {
-font-family: var(–mono);
-font-size: 10px;
-color: var(–text3);
-letter-spacing: 1px;
-}
-
-.analytic-val {
-font-family: var(–display);
-font-size: 16px;
-font-weight: 700;
-color: var(–accent2);
-}
-
-/* Alert panel */
-.alert-panel {}
-
-.alert-item {
-padding: 10px 16px;
-border-bottom: 1px solid var(–border);
-display: flex;
-align-items: flex-start;
-gap: 10px;
-font-family: var(–mono);
-font-size: 10px;
-}
-
-.alert-type {
-padding: 2px 6px;
-font-size: 9px;
-letter-spacing: 1px;
-border: 1px solid;
-white-space: nowrap;
-flex-shrink: 0;
-}
-.alert-type.ok { color: var(–accent); border-color: var(–accent); }
-.alert-type.warn { color: var(–accent4); border-color: var(–accent4); }
-.alert-type.err { color: var(–accent3); border-color: var(–accent3); }
-
-.alert-msg { color: var(–text2); line-height: 1.5; }
-.alert-time { color: var(–text3); font-size: 9px; margin-top: 2px; }
-
-/* Radar */
-.radar-panel {}
-
-#radarCanvas {
-width: 100%;
-height: 180px;
-display: block;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(–bg); }
-::-webkit-scrollbar-thumb { background: var(–border2); }
-
-/* Responsive tweaks */
-@media (max-width: 1100px) {
-.app { grid-template-columns: 220px 1fr 260px; }
-}
-
-@media (max-width: 900px) {
-.app { grid-template-columns: 1fr; }
-.sidebar-left, .sidebar-right { display: none; }
-}
-
-/* Boot overlay */
-#bootOverlay {
+/* BOTTOM BAR */
+.hud-bottom {
 position: fixed;
-inset: 0;
-background: var(–bg);
-z-index: 9998;
+bottom: 0; left: 0; right: 0;
+z-index: 10;
+padding: 10px 16px calc(env(safe-area-inset-bottom, 10px) + 10px);
+background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
 display: flex;
-flex-direction: column;
 align-items: center;
-justify-content: center;
-gap: 24px;
-transition: opacity 0.5s ease;
+justify-content: space-between;
+gap: 10px;
 }
 
-#bootOverlay.hidden { opacity: 0; pointer-events: none; }
+.btn {
+background: var(–bg-hud);
+border: 1px solid var(–border);
+border-radius: 2px;
+padding: 9px 12px;
+color: var(–accent);
+font-family: var(–mono);
+font-size: 10px;
+letter-spacing: 1px;
+cursor: pointer;
+backdrop-filter: blur(8px);
+-webkit-backdrop-filter: blur(8px);
+touch-action: manipulation;
+transition: background 0.15s;
+-webkit-user-select: none; user-select: none;
+display: flex; align-items: center; gap: 5px;
+white-space: nowrap;
+}
+.btn:active { background: rgba(0,255,200,0.18); }
+.btn-icon { font-size: 14px; }
 
-.boot-logo {
+.center-info {
+text-align: center;
+flex: 1;
+pointer-events: none;
+}
+.big-count {
 font-family: var(–display);
-font-size: 28px;
+font-size: 32px;
 font-weight: 900;
 color: var(–accent);
-text-shadow: var(–glow);
-letter-spacing: 8px;
+text-shadow: 0 0 20px rgba(0,255,200,0.5);
+line-height: 1;
+}
+.big-label {
+font-family: var(–mono);
+font-size: 8px;
+color: rgba(0,255,200,0.45);
+letter-spacing: 2px;
+margin-top: 2px;
 }
 
-.boot-progress {
-width: 300px;
-height: 2px;
-background: var(–border);
+/* PERMISSION SCREEN */
+#permScreen {
+position: fixed; inset: 0;
+z-index: 100;
+background: #000;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 20px;
+transition: opacity 0.4s;
 }
+#permScreen.fade { opacity: 0; pointer-events: none; }
 
-.boot-bar {
+.p-logo {
+font-family: var(–display);
+font-size: 24px;
+font-weight: 900;
+letter-spacing: 6px;
+color: var(–accent);
+text-shadow: 0 0 30px rgba(0,255,200,0.4);
+}
+.p-sub {
+font-family: var(–mono);
+font-size: 10px;
+color: rgba(0,255,200,0.35);
+letter-spacing: 3px;
+}
+.p-track {
+width: 200px; height: 2px;
+background: rgba(0,255,200,0.1);
+overflow: hidden;
+}
+.p-fill {
 height: 100%;
 background: linear-gradient(90deg, var(–accent2), var(–accent));
-width: 0%;
-transition: width 0.1s;
-box-shadow: 0 0 10px var(–accent);
+width: 0%; transition: width 0.4s ease;
+box-shadow: 0 0 8px var(–accent);
 }
-
-.boot-log {
+.p-msg {
 font-family: var(–mono);
-font-size: 11px;
-color: var(–text3);
+font-size: 10px;
+color: rgba(200,240,255,0.45);
 letter-spacing: 1px;
-height: 16px;
+text-align: center;
+line-height: 1.8;
+max-width: 220px;
 }
+.p-btn {
+background: transparent;
+border: 1px solid var(–accent);
+border-radius: 2px;
+padding: 12px 30px;
+color: var(–accent);
+font-family: var(–display);
+font-size: 11px;
+letter-spacing: 3px;
+cursor: pointer;
+touch-action: manipulation;
+box-shadow: 0 0 16px rgba(0,255,200,0.12);
+transition: background 0.2s;
+}
+.p-btn:active { background: rgba(0,255,200,0.1); }
+
+/* NO CAMERA */
+#noCamera {
+display: none; position: fixed; inset: 0;
+z-index: 50; background: rgba(0,0,0,0.92);
+align-items: center; justify-content: center;
+font-family: var(–mono); font-size: 12px;
+color: rgba(200,240,255,0.5);
+text-align: center; padding: 32px; line-height: 2;
+}
+#noCamera.show { display: flex; }
 </style>
 
 </head>
 <body>
 
-<!-- Boot Screen -->
+<!-- Permission screen -->
 
-<div id="bootOverlay">
-  <div class="boot-logo">INVISPOSE</div>
-  <div style="font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:3px;">WIFI DENSEPOSE SYSTEM v1.0.0</div>
-  <div class="boot-progress"><div class="boot-bar" id="bootBar"></div></div>
-  <div class="boot-log" id="bootLog">Initializing...</div>
+<div id="permScreen">
+  <div class="p-logo">INVISPOSE</div>
+  <div class="p-sub">WIFI · DENSEPOSE · AR</div>
+  <div class="p-track"><div class="p-fill" id="pFill"></div></div>
+  <div class="p-msg" id="pMsg">LOADING POSE ENGINE...<br>PLEASE WAIT</div>
+  <button class="p-btn" id="startBtn" style="display:none" onclick="startCamera()">ENABLE CAMERA</button>
 </div>
 
-<!-- Top Bar -->
+<!-- No camera fallback -->
 
-<div class="topbar">
+<div id="noCamera">CAMERA ACCESS REQUIRED<br>ALLOW PERMISSION AND RELOAD<br><br>HTTPS REQUIRED ON MOBILE</div>
+
+<!-- Camera -->
+
+<video id="video" autoplay playsinline muted></video>
+
+<!-- Pose canvas -->
+
+<canvas id="canvas"></canvas>
+
+<!-- Scanline -->
+
+<div class="scanline"></div>
+
+<!-- Corner brackets -->
+
+<div class="br br-tl"></div>
+<div class="br br-tr"></div>
+<div class="br br-bl"></div>
+<div class="br br-br"></div>
+
+<!-- Top HUD -->
+
+<div class="hud-top">
   <div class="logo">
-    <svg class="logo-icon" viewBox="0 0 36 36" fill="none">
-      <circle cx="18" cy="18" r="17" stroke="#0d3348" stroke-width="1.5"/>
-      <circle cx="18" cy="18" r="12" stroke="#1a5a7a" stroke-width="1"/>
-      <circle cx="18" cy="18" r="4" fill="#00f5c4" opacity="0.8"/>
-      <path d="M8 18 Q13 10 18 18 Q23 26 28 18" stroke="#00f5c4" stroke-width="1.5" fill="none" opacity="0.6"/>
-      <line x1="18" y1="4" x2="18" y2="32" stroke="#0d3348" stroke-width="0.5"/>
-      <line x1="4" y1="18" x2="32" y2="18" stroke="#0d3348" stroke-width="0.5"/>
-    </svg>
-    <div>
-      <div class="logo-text">INVISPOSE</div>
-      <div class="logo-sub">WIFI DENSEPOSE SYSTEM</div>
-    </div>
+    <div class="logo-mark"></div>
+    <div class="logo-text">INVISPOSE</div>
   </div>
-
-  <div class="topbar-center">
-    <div class="status-pill">
-      <div class="status-dot"></div>
-      LIVE · PROCESSING
-    </div>
-    <div class="status-pill" style="border-color:rgba(0,184,255,0.2);color:var(--accent2);background:rgba(0,184,255,0.05);">
-      <div class="status-dot" style="background:var(--accent2);box-shadow:0 0 8px var(--accent2)"></div>
-      WIFI · CONNECTED
-    </div>
-  </div>
-
-  <div class="topbar-right">
-    <span>FPS: <span id="fpsDisplay" style="color:var(--accent)">30</span></span>
-    <span>PERSONS: <span id="personCount" style="color:var(--accent2)">0</span></span>
-    <span class="live-clock" id="clock">--:--:--</span>
+  <div class="pills">
+    <div class="pill"><div class="dot"></div><span class="pill-live" id="fpsVal">--</span><span class="pill-dim">FPS</span></div>
+    <div class="pill"><span class="pill-live" id="confVal">--</span><span class="pill-dim">CONF</span></div>
+    <div class="pill"><span class="pill-live" id="connType">WIFI</span></div>
   </div>
 </div>
 
-<!-- Main App -->
+<!-- Left sidebar -->
 
-<div class="app">
-
-  <!-- LEFT SIDEBAR -->
-
-  <div class="sidebar-left">
-
-```
-<!-- WiFi Panel -->
-<div class="panel wifi-panel">
-  <div class="panel-header">
-    <span class="panel-title">Network Interface</span>
-    <span class="panel-badge">CSI</span>
+<div class="sidebar-left">
+  <div class="info-block">
+    <div class="ib-label">SIGNAL</div>
+    <div class="sig-bars" id="sigBars">
+      <div class="sig-bar on"></div>
+      <div class="sig-bar on"></div>
+      <div class="sig-bar on"></div>
+      <div class="sig-bar"></div>
+    </div>
   </div>
-  <div class="wifi-visual">
-    <div class="wifi-rings">
-      <div class="wifi-ring"></div>
-      <div class="wifi-ring"></div>
-      <div class="wifi-ring"></div>
-      <div class="wifi-ring"></div>
-      <div class="wifi-dot"></div>
-    </div>
-    <div class="wifi-info-grid">
-      <div class="info-row">
-        <span class="info-label">SSID</span>
-        <span class="info-val" id="wifiSSID">Scanning...</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">TYPE</span>
-        <span class="info-val" id="connType">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">DOWNLINK</span>
-        <span class="info-val" id="downlink">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">RTT</span>
-        <span class="info-val" id="rtt">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">SIGNAL</span>
-        <div class="signal-bar" id="signalBar">
-          <div class="sig-bar active"></div>
-          <div class="sig-bar active"></div>
-          <div class="sig-bar active"></div>
-          <div class="sig-bar"></div>
-          <div class="sig-bar"></div>
-        </div>
-      </div>
-      <div class="info-row">
-        <span class="info-label">ROUTERS</span>
-        <span class="info-val" id="routerCount">3</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">CHANNEL</span>
-        <span class="info-val" id="wifiChannel">6 (2.4GHz)</span>
-      </div>
-    </div>
+  <div class="info-block">
+    <div class="ib-label">SPEED</div>
+    <div class="ib-val" id="dlVal">—</div>
+  </div>
+  <div class="info-block">
+    <div class="ib-label">RTT</div>
+    <div class="ib-val" id="rttVal">—</div>
+  </div>
+  <div class="info-block">
+    <div class="ib-label">MODE</div>
+    <div class="ib-val" id="modeVal">REAR</div>
   </div>
 </div>
 
-<!-- CSI Metrics -->
-<div class="panel metrics-panel">
-  <div class="panel-header">
-    <span class="panel-title">CSI Metrics</span>
-    <span class="panel-badge">LIVE</span>
+<!-- Right sidebar -->
+
+<div class="sidebar-right">
+  <div class="stat-block">
+    <div class="st-label">PERSONS</div>
+    <div class="st-val" id="personStat">0</div>
   </div>
-  <div class="metric-item">
-    <span class="metric-label">Latency</span>
-    <div>
-      <span class="metric-value" id="latencyVal">42</span>
-      <span class="metric-unit">ms</span>
-    </div>
-    <div class="metric-bar-track">
-      <div class="metric-bar-fill" id="latencyBar" style="width:42%"></div>
-    </div>
+  <div class="stat-block">
+    <div class="st-label">KEYPTS</div>
+    <div class="st-val" id="kpStat">0</div>
   </div>
-  <div class="metric-item">
-    <span class="metric-label">Frame Rate</span>
-    <div>
-      <span class="metric-value" id="frameRateVal">30</span>
-      <span class="metric-unit">fps</span>
-    </div>
-    <div class="metric-bar-track">
-      <div class="metric-bar-fill" id="frameRateBar" style="width:100%"></div>
-    </div>
-  </div>
-  <div class="metric-item">
-    <span class="metric-label">CSI Quality</span>
-    <div>
-      <span class="metric-value" id="csiQualVal">94</span>
-      <span class="metric-unit">%</span>
-    </div>
-    <div class="metric-bar-track">
-      <div class="metric-bar-fill" id="csiQualBar" style="width:94%"></div>
-    </div>
-  </div>
-  <div class="metric-item">
-    <span class="metric-label">Confidence</span>
-    <div>
-      <span class="metric-value" id="confVal">0.87</span>
-    </div>
-    <div class="metric-bar-track">
-      <div class="metric-bar-fill" id="confBar" style="width:87%"></div>
-    </div>
+  <div class="stat-block">
+    <div class="st-label">LAT</div>
+    <div class="st-val" id="latStat">--</div>
+    <div class="st-unit">ms</div>
   </div>
 </div>
 
-<!-- Zones -->
-<div class="panel zones-panel">
-  <div class="panel-header">
-    <span class="panel-title">Detection Zones</span>
-  </div>
-  <div class="zone-list">
-    <div class="zone-item active" onclick="selectZone(this,'Living Room')">
-      <div style="display:flex;align-items:center;gap:8px"><div class="zone-dot"></div>Living Room</div>
-      <span class="zone-count" id="z0">2</span>
-    </div>
-    <div class="zone-item" onclick="selectZone(this,'Bedroom')">
-      <div style="display:flex;align-items:center;gap:8px"><div class="zone-dot"></div>Bedroom</div>
-      <span class="zone-count" id="z1">1</span>
-    </div>
-    <div class="zone-item" onclick="selectZone(this,'Kitchen')">
-      <div style="display:flex;align-items:center;gap:8px"><div class="zone-dot"></div>Kitchen</div>
-      <span class="zone-count" id="z2">0</span>
-    </div>
-    <div class="zone-item" onclick="selectZone(this,'Hallway')">
-      <div style="display:flex;align-items:center;gap:8px"><div class="zone-dot"></div>Hallway</div>
-      <span class="zone-count" id="z3">0</span>
-    </div>
-    <div class="zone-item" onclick="selectZone(this,'Garage')">
-      <div style="display:flex;align-items:center;gap:8px"><div class="zone-dot"></div>Garage</div>
-      <span class="zone-count" id="z4">0</span>
-    </div>
-  </div>
-</div>
-```
+<!-- Bottom bar -->
 
+<div class="hud-bottom">
+  <button class="btn" onclick="flipCamera()">
+    <span class="btn-icon">🔄</span><span>FLIP</span>
+  </button>
+  <div class="center-info">
+    <div class="big-count" id="personCount">0</div>
+    <div class="big-label">DETECTED</div>
   </div>
-
-  <!-- CENTER -->
-
-  <div class="main-center">
-
-```
-<!-- Pose visualization -->
-<div class="panel pose-panel" style="flex:1;">
-  <div class="panel-header">
-    <span class="panel-title">Pose Estimation · Real-Time</span>
-    <div style="display:flex;gap:8px">
-      <span class="panel-badge" id="zoneLabel">LIVING ROOM</span>
-      <span class="panel-badge" style="color:var(--accent3)">THROUGH-WALL</span>
-    </div>
-  </div>
-  <div class="pose-canvas-wrap">
-    <canvas id="poseCanvas"></canvas>
-    <div class="canvas-overlay">
-      <div class="corner corner-tl"></div>
-      <div class="corner corner-tr"></div>
-      <div class="corner corner-bl"></div>
-      <div class="corner corner-br"></div>
-      <div class="scanning-line"></div>
-    </div>
-  </div>
+  <button class="btn" onclick="toggleFX()">
+    <span class="btn-icon">✦</span><span id="fxLabel">FX ON</span>
+  </button>
 </div>
 
-<!-- CSI Waveform -->
-<div class="panel wave-panel">
-  <div class="panel-header">
-    <span class="panel-title">CSI Signal Waveform</span>
-    <span class="panel-badge">52 SUBCARRIERS</span>
-  </div>
-  <canvas id="waveCanvas"></canvas>
-</div>
-```
+<!-- Scripts -->
 
-  </div>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 
-  <!-- RIGHT SIDEBAR -->
-
-  <div class="sidebar-right">
-
-```
-<!-- Radar -->
-<div class="panel radar-panel">
-  <div class="panel-header">
-    <span class="panel-title">Spatial Radar</span>
-    <span class="panel-badge">360°</span>
-  </div>
-  <canvas id="radarCanvas"></canvas>
-</div>
-
-<!-- Detected persons -->
-<div class="panel persons-panel">
-  <div class="panel-header">
-    <span class="panel-title">Detected Persons</span>
-    <span class="panel-badge" id="personBadge">0</span>
-  </div>
-  <div id="personList"></div>
-</div>
-
-<!-- Analytics -->
-<div class="panel analytics-panel">
-  <div class="panel-header">
-    <span class="panel-title">Analytics</span>
-  </div>
-  <div class="analytic-item">
-    <span class="analytic-label">DETECTIONS TODAY</span>
-    <span class="analytic-val" id="detectionsToday">0</span>
-  </div>
-  <div class="analytic-item">
-    <span class="analytic-label">AVG CONFIDENCE</span>
-    <span class="analytic-val" id="avgConf">0%</span>
-  </div>
-  <div class="analytic-item">
-    <span class="analytic-label">FALL ALERTS</span>
-    <span class="analytic-val" style="color:var(--accent3)" id="fallAlerts">0</span>
-  </div>
-  <div class="analytic-item">
-    <span class="analytic-label">UPTIME</span>
-    <span class="analytic-val" id="uptime">00:00:00</span>
-  </div>
-</div>
-
-<!-- Alerts -->
-<div class="panel alert-panel">
-  <div class="panel-header">
-    <span class="panel-title">System Alerts</span>
-  </div>
-  <div id="alertList">
-    <div class="alert-item">
-      <span class="alert-type ok">SYS</span>
-      <div><div class="alert-msg">System initialized successfully</div><div class="alert-time" id="initTime">--</div></div>
-    </div>
-  </div>
-</div>
-```
-
-  </div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
 <script>
-// ─────────────────────────────────────────────
-// BOOT SEQUENCE
-// ─────────────────────────────────────────────
-const bootMessages = [
-  'Initializing hardware abstraction layer...',
-  'Loading DensePose neural network weights...',
-  'Connecting to WiFi CSI interface...',
-  'Calibrating phase sanitizer...',
-  'Starting multi-person tracker...',
-  'Initializing WebSocket server...',
-  'Loading analytics engine...',
-  'System ready.'
+// ── POSE CONNECTIONS (MediaPipe 33-landmark model) ──
+const CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10],
+  [11,12],[11,13],[13,15],[15,17],[15,19],[17,19],
+  [12,14],[14,16],[16,18],[16,20],[18,20],
+  [11,23],[12,24],[23,24],
+  [23,25],[25,27],[27,29],[27,31],[29,31],
+  [24,26],[26,28],[28,30],[28,32],[30,32]
 ];
 
-let bootStep = 0;
-const bootBar = document.getElementById('bootBar');
-const bootLog = document.getElementById('bootLog');
-const bootOverlay = document.getElementById('bootOverlay');
+function segColor(a, b) {
+  if (a <= 10 || b <= 10) return '#00ffc8';
+  if ((a>=11&&a<=22)||(b>=11&&b<=22)) {
+    if ((a<=12||b<=12)||(a==23||b==23)||(a==24||b==24)) return '#ffc844';
+    return '#00b8ff';
+  }
+  return '#ff6ec4';
+}
 
-function bootSequence() {
-  if (bootStep >= bootMessages.length) {
-    setTimeout(() => { bootOverlay.classList.add('hidden'); init(); }, 400);
+// ── STATE ──
+const video  = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+
+let facingMode = 'environment';
+let isMirror   = false;
+let fxOn       = true;
+let frameCount = 0, lastFPSt = Date.now(), fps = 0;
+let mpPose, mpCamera, stream;
+let frameStart = 0;
+
+// ── BOOT ──
+const bootSteps = [
+  [0,  'LOADING POSE ENGINE...'],
+  [25, 'COMPILING WASM...'],
+  [55, 'PREPARING NEURAL NET...'],
+  [80, 'READY'],
+];
+let bi = 0;
+function boot() {
+  if (bi >= bootSteps.length) {
+    document.getElementById('pFill').style.width = '80%';
+    document.getElementById('pMsg').textContent = 'READY · TAP TO BEGIN';
+    document.getElementById('startBtn').style.display = 'block';
     return;
   }
-  bootLog.textContent = bootMessages[bootStep];
-  bootBar.style.width = ((bootStep + 1) / bootMessages.length * 100) + '%';
-  bootStep++;
-  setTimeout(bootSequence, 300 + Math.random() * 200);
+  const [p, m] = bootSteps[bi++];
+  document.getElementById('pFill').style.width = p + '%';
+  document.getElementById('pMsg').textContent = m;
+  setTimeout(boot, 420 + Math.random()*300);
 }
-setTimeout(bootSequence, 400);
+window.addEventListener('load', () => setTimeout(boot, 200));
 
-// ─────────────────────────────────────────────
-// GLOBALS
-// ─────────────────────────────────────────────
-let animFrame;
-let persons = [];
-let startTime = Date.now();
-let detectionsTotal = 0;
-let fallCount = 0;
-let currentZone = 'Living Room';
-let waveHistory = [];
-const ACTIVITIES = ['Standing', 'Walking', 'Sitting', 'Typing', 'Stretching', 'Waving', 'Lying Down'];
-
-// ─────────────────────────────────────────────
-// CLOCK
-// ─────────────────────────────────────────────
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toTimeString().slice(0,8);
-
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
-  const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
-  const s = String(elapsed%60).padStart(2,'0');
-  document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+// ── RESIZE ──
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
-setInterval(updateClock, 1000);
+resize();
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 100));
 
-// Set init time
-document.getElementById('initTime').textContent = new Date().toLocaleTimeString();
+// ── MEDIAPIPE INIT ──
+function initPose() {
+  mpPose = new Pose({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+  });
+  mpPose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  mpPose.onResults(onResults);
+}
 
-// ─────────────────────────────────────────────
-// NETWORK INFO (real browser APIs)
-// ─────────────────────────────────────────────
-function readNetworkInfo() {
-  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+// ── START CAMERA ──
+async function startCamera() {
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('pMsg').textContent = 'REQUESTING CAMERA...';
+  document.getElementById('pFill').style.width = '90%';
 
-  if (conn) {
-    const type = conn.effectiveType || conn.type || '—';
-    document.getElementById('connType').textContent = type.toUpperCase();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: facingMode }, width:{ideal:1280}, height:{ideal:720} },
+      audio: false
+    });
+    video.srcObject = stream;
 
-    const dl = conn.downlink;
-    document.getElementById('downlink').textContent = dl ? dl.toFixed(1) + ' Mbps' : '—';
+    await new Promise(r => { video.onloadedmetadata = r; });
 
-    const rtt = conn.rtt;
-    document.getElementById('rtt').textContent = rtt ? rtt + ' ms' : '—';
+    document.getElementById('pFill').style.width = '100%';
+    document.getElementById('pMsg').textContent = 'STARTING AI...';
 
-    // Signal strength from downlink
-    const sigLevel = dl ? Math.min(5, Math.ceil(dl / 10)) : 3;
-    const bars = document.querySelectorAll('.sig-bar');
-    bars.forEach((b,i) => {
-      b.classList.toggle('active', i < sigLevel);
+    initPose();
+
+    mpCamera = new Camera(video, {
+      onFrame: async () => { if (mpPose) { frameStart = Date.now(); await mpPose.send({ image: video }); } },
+      width: 1280, height: 720
     });
 
-    // Update CSI quality based on real connection
-    const qual = dl ? Math.min(99, Math.round(70 + dl * 0.5)) : 88;
-    updateMetric('csiQual', qual + '%', qual);
+    await mpCamera.start();
 
-    conn.addEventListener('change', readNetworkInfo);
-  } else {
-    document.getElementById('connType').textContent = 'WiFi';
-    document.getElementById('downlink').textContent = '~50 Mbps';
-    document.getElementById('rtt').textContent = '~20 ms';
-  }
+    const ps = document.getElementById('permScreen');
+    ps.classList.add('fade');
+    setTimeout(() => { ps.style.display = 'none'; }, 400);
 
-  // Try to get SSID via WebRTC candidate (limited)
-  document.getElementById('wifiSSID').textContent = 'Connected Network';
-  detectChannel();
-}
+    readNetworkInfo();
 
-function detectChannel() {
-  // Estimate channel from RTT / connection info
-  const conn = navigator.connection;
-  if (conn) {
-    const is5g = conn.effectiveType === '4g' || (conn.downlink && conn.downlink > 50);
-    document.getElementById('wifiChannel').textContent = is5g ? '36 (5GHz)' : '6 (2.4GHz)';
-    document.getElementById('routerCount').textContent = is5g ? '3' : '2';
+  } catch(e) {
+    console.error(e);
+    document.getElementById('noCamera').classList.add('show');
+    document.getElementById('permScreen').style.display = 'none';
   }
 }
 
-// ─────────────────────────────────────────────
-// POSE ENGINE
-// ─────────────────────────────────────────────
-const KEYPOINTS = 17;
-const CONNECTIONS = [
-  [0,1],[0,2],[1,3],[2,4],       // head
-  [5,6],[5,7],[7,9],[6,8],[8,10], // arms
-  [5,11],[6,12],[11,12],          // torso
-  [11,13],[13,15],[12,14],[14,16] // legs
-];
+// ── POSE RESULTS ──
+function onResults(results) {
+  const W = canvas.width, H = canvas.height;
+  const now = Date.now();
+  const latency = now - frameStart;
 
-class Person {
-  constructor(id, x, y, activity) {
-    this.id = id;
-    this.x = x;
-    this.y = y;
-    this.vx = (Math.random()-0.5)*0.3;
-    this.vy = (Math.random()-0.5)*0.1;
-    this.activity = activity || ACTIVITIES[Math.floor(Math.random()*ACTIVITIES.length)];
-    this.activityTimer = 0;
-    this.confidence = 0.75 + Math.random()*0.22;
-    this.phase = Math.random()*Math.PI*2;
-    this.scale = 0.8 + Math.random()*0.3;
-    this.keypoints = this.generateKeypoints();
-    this.color = id === 0 ? '#00f5c4' : id === 1 ? '#00b8ff' : '#ffd700';
+  // FPS counter
+  frameCount++;
+  if (now - lastFPSt >= 1000) {
+    fps = Math.round(frameCount * 1000 / (now - lastFPSt));
+    frameCount = 0; lastFPSt = now;
+    document.getElementById('fpsVal').textContent = fps;
   }
 
-  generateKeypoints() {
-    const kp = [];
-    // Base skeleton around (0,0) normalized
-    const base = [
-      [0, -0.35],   // 0 nose
-      [-0.04, -0.42], // 1 left eye
-      [0.04, -0.42],  // 2 right eye
-      [-0.09, -0.40], // 3 left ear
-      [0.09, -0.40],  // 4 right ear
-      [-0.14, -0.25], // 5 left shoulder
-      [0.14, -0.25],  // 6 right shoulder
-      [-0.20, -0.05], // 7 left elbow
-      [0.20, -0.05],  // 8 right elbow
-      [-0.18, 0.12],  // 9 left wrist
-      [0.18, 0.12],   // 10 right wrist
-      [-0.10, 0.10],  // 11 left hip
-      [0.10, 0.10],   // 12 right hip
-      [-0.11, 0.35],  // 13 left knee
-      [0.11, 0.35],   // 14 right knee
-      [-0.10, 0.58],  // 15 left ankle
-      [0.10, 0.58],   // 16 right ankle
-    ];
-    for (let b of base) {
-      kp.push({ x: b[0], y: b[1], vx: 0, vy: 0 });
+  ctx.save();
+  ctx.clearRect(0, 0, W, H);
+
+  if (isMirror) { ctx.scale(-1,1); ctx.translate(-W,0); }
+
+  // Vignette
+  if (fxOn) {
+    const v = ctx.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.8);
+    v.addColorStop(0,'transparent');
+    v.addColorStop(1,'rgba(0,4,8,0.45)');
+    ctx.fillStyle = v; ctx.fillRect(0,0,W,H);
+  }
+
+  const lm = results.poseLandmarks;
+  let visKP = 0, confSum = 0;
+
+  if (lm && lm.length) {
+    // Connections
+    ctx.lineCap = 'round';
+    for (const [a,b] of CONNECTIONS) {
+      const ka = lm[a], kb = lm[b];
+      if (!ka||!kb||ka.visibility<0.3||kb.visibility<0.3) continue;
+      const ax=ka.x*W, ay=ka.y*H, bx=kb.x*W, by=kb.y*H;
+      const col = segColor(a,b);
+      const vis = (ka.visibility+kb.visibility)/2;
+
+      if (fxOn) {
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+        ctx.strokeStyle = col+'28'; ctx.lineWidth = 12; ctx.stroke();
+      }
+
+      const g = ctx.createLinearGradient(ax,ay,bx,by);
+      const alpha = Math.round(vis*210).toString(16).padStart(2,'0');
+      g.addColorStop(0, col+alpha);
+      g.addColorStop(1, col+Math.round(vis*140).toString(16).padStart(2,'0'));
+      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+      ctx.strokeStyle = g; ctx.lineWidth = 3; ctx.stroke();
     }
-    return kp;
-  }
 
-  applyActivityPose(t) {
-    const kp = this.keypoints;
-    const s = Math.sin(t * 2 + this.phase);
-    const c = Math.cos(t * 2 + this.phase);
-    const s2 = Math.sin(t * 4 + this.phase);
+    // Keypoints
+    for (let i=0; i<lm.length; i++) {
+      const k = lm[i];
+      if (k.visibility < 0.3) continue;
+      visKP++; confSum += k.visibility;
+      const px=k.x*W, py=k.y*H;
+      const col = segColor(i,i);
+      const r = i < 11 ? 4 : 5;
 
-    if (this.activity === 'Walking') {
-      // Swing arms and legs
-      kp[7].x = -0.20 + s*0.08; kp[7].y = -0.05 + c*0.04;
-      kp[8].x = 0.20 - s*0.08; kp[8].y = -0.05 - c*0.04;
-      kp[9].x = -0.18 + s*0.12;
-      kp[10].x = 0.18 - s*0.12;
-      kp[13].y = 0.35 + s*0.08;
-      kp[14].y = 0.35 - s*0.08;
-      kp[15].y = 0.58 + s*0.10;
-      kp[16].y = 0.58 - s*0.10;
-    } else if (this.activity === 'Sitting') {
-      kp[11].y = 0.15; kp[12].y = 0.15;
-      kp[13].x = -0.18; kp[13].y = 0.18;
-      kp[14].x = 0.18; kp[14].y = 0.18;
-      kp[15].x = -0.20; kp[15].y = 0.20;
-      kp[16].x = 0.20; kp[16].y = 0.20;
-    } else if (this.activity === 'Waving') {
-      kp[7].x = -0.22 + c*0.04;
-      kp[7].y = -0.18 + s*0.05;
-      kp[9].x = -0.28 + c*0.06;
-      kp[9].y = -0.30 + s*0.08;
-    } else if (this.activity === 'Stretching') {
-      kp[5].y = -0.30 + s*0.04;
-      kp[6].y = -0.30 - s*0.04;
-      kp[7].x = -0.28 + s*0.04;
-      kp[8].x = 0.28 - s*0.04;
-      kp[9].y = -0.22 + c*0.05;
-      kp[10].y = -0.22 - c*0.05;
-    } else if (this.activity === 'Typing') {
-      kp[7].y = -0.02 + s2*0.02;
-      kp[8].y = -0.02 - s2*0.02;
-      kp[9].x = -0.14 + s*0.03;
-      kp[10].x = 0.14 - s*0.03;
-    } else if (this.activity === 'Lying Down') {
-      // Rotate 90 degrees
-      for (let k of kp) {
-        const tmp = k.x;
-        k.x = k.y * 0.6;
-        k.y = tmp * 0.3 + 0.1;
+      if (fxOn) {
+        ctx.beginPath(); ctx.arc(px,py,r+6,0,Math.PI*2);
+        ctx.fillStyle=col+'18'; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+      ctx.fillStyle = col;
+      if(fxOn){ctx.shadowColor=col;ctx.shadowBlur=8;}
+      ctx.fill();
+      ctx.shadowBlur=0;
+    }
+
+    // Label above head (landmark 0 = nose)
+    const nose = lm[0];
+    if (nose && nose.visibility > 0.4) {
+      const tx = nose.x*W, ty = nose.y*H - 22;
+      const conf = visKP ? Math.round(confSum/visKP*100) : 0;
+      const label = `PERSON · ${conf}%`;
+      const lw = label.length * 6.2;
+
+      ctx.fillStyle = 'rgba(0,10,15,0.75)';
+      ctx.fillRect(tx-lw/2-6, ty-15, lw+12, 16);
+      ctx.strokeStyle = 'rgba(0,255,200,0.55)'; ctx.lineWidth=0.8;
+      ctx.strokeRect(tx-lw/2-6, ty-15, lw+12, 16);
+      ctx.fillStyle='#00ffc8';
+      ctx.font='10px "Share Tech Mono"';
+      ctx.textAlign='center';
+      ctx.fillText(label, tx, ty-2);
+      ctx.textAlign='left';
+    }
+
+    // Bounding dashes
+    const xs = lm.filter(k=>k.visibility>0.5).map(k=>k.x*W);
+    const ys = lm.filter(k=>k.visibility>0.5).map(k=>k.y*H);
+    if (xs.length > 4) {
+      const minX=Math.min(...xs)-12, maxX=Math.max(...xs)+12;
+      const minY=Math.min(...ys)-12, maxY=Math.max(...ys)+12;
+      ctx.strokeStyle='rgba(0,255,200,0.18)';
+      ctx.lineWidth=1; ctx.setLineDash([5,4]);
+      ctx.strokeRect(minX,minY,maxX-minX,maxY-minY);
+      ctx.setLineDash([]);
+    }
+
+    // Update HUD
+    const conf2 = visKP ? Math.round(confSum/visKP*100)+'%' : '--';
+    document.getElementById('personCount').textContent = '1';
+    document.getElementById('personStat').textContent  = '1';
+    document.getElementById('confVal').textContent     = conf2;
+    document.getElementById('kpStat').textContent      = visKP;
+    document.getElementById('latStat').textContent     = latency;
+
+  } else {
+    // No pose — searching pulse
+    if (fxOn) {
+      const cx=W/2, cy=H/2;
+      const t = Date.now()/500;
+      for (let i=0;i<3;i++) {
+        const r = 30 + i*25 + Math.sin(t+i)*8;
+        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(0,255,200,${0.06-i*0.015})`;
+        ctx.lineWidth=1.5; ctx.stroke();
       }
     }
+    document.getElementById('personCount').textContent = '0';
+    document.getElementById('personStat').textContent  = '0';
+    document.getElementById('confVal').textContent     = '--';
+    document.getElementById('kpStat').textContent      = '0';
+    document.getElementById('latStat').textContent     = latency;
   }
 
-  update(t, cw, ch) {
-    this.phase += 0.01;
-    this.activityTimer++;
-
-    if (this.activityTimer > 300 + Math.random()*200) {
-      this.activity = ACTIVITIES[Math.floor(Math.random()*ACTIVITIES.length)];
-      this.activityTimer = 0;
-      addAlert('INFO', `Person ${this.id+1} activity changed: ${this.activity}`);
-    }
-
-    if (this.activity === 'Walking') {
-      this.x += this.vx;
-      this.y += this.vy * 0.3;
-      const pad = 0.15;
-      if (this.x < pad || this.x > 1-pad) { this.vx *= -1; this.x = Math.max(pad, Math.min(1-pad,this.x)); }
-      if (this.y < pad || this.y > 1-pad) { this.vy *= -1; this.y = Math.max(pad, Math.min(1-pad,this.y)); }
-    }
-
-    // Reset keypoints
-    this.keypoints = this.generateKeypoints();
-    this.applyActivityPose(t);
-
-    // Add subtle noise
-    for (let k of this.keypoints) {
-      k.x += (Math.random()-0.5)*0.004;
-      k.y += (Math.random()-0.5)*0.004;
-    }
-  }
-
-  draw(ctx, cw, ch) {
-    const px = this.x * cw;
-    const py = this.y * ch;
-    const scale = this.scale * Math.min(cw, ch) * 0.22;
-
-    const col = this.color;
-    const colA = col + '60';
-
-    // Draw connections
-    ctx.lineWidth = 2;
-    for (let [a,b] of CONNECTIONS) {
-      const ka = this.keypoints[a];
-      const kb = this.keypoints[b];
-      ctx.beginPath();
-      ctx.moveTo(px + ka.x*scale, py + ka.y*scale);
-      ctx.lineTo(px + kb.x*scale, py + kb.y*scale);
-
-      // Color by body part
-      const grad = ctx.createLinearGradient(
-        px + ka.x*scale, py + ka.y*scale,
-        px + kb.x*scale, py + kb.y*scale
-      );
-      grad.addColorStop(0, col + 'cc');
-      grad.addColorStop(1, col + '88');
-      ctx.strokeStyle = grad;
-      ctx.stroke();
-    }
-
-    // Draw keypoints
-    for (let i = 0; i < this.keypoints.length; i++) {
-      const k = this.keypoints[i];
-      const kx = px + k.x*scale;
-      const ky = py + k.y*scale;
-      const r = i === 0 ? 5 : 3;
-
-      ctx.beginPath();
-      ctx.arc(kx, ky, r, 0, Math.PI*2);
-      ctx.fillStyle = col;
-      ctx.fill();
-
-      // Glow
-      ctx.beginPath();
-      ctx.arc(kx, ky, r+3, 0, Math.PI*2);
-      ctx.fillStyle = col + '20';
-      ctx.fill();
-    }
-
-    // Label
-    const head = this.keypoints[0];
-    const lx = px + head.x*scale;
-    const ly = py + head.y*scale - 24;
-
-    ctx.fillStyle = col + '20';
-    ctx.fillRect(lx - 36, ly - 14, 72, 14);
-    ctx.strokeStyle = col + '60';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(lx - 36, ly - 14, 72, 14);
-
-    ctx.fillStyle = col;
-    ctx.font = '9px "Share Tech Mono"';
-    ctx.textAlign = 'center';
-    ctx.fillText(`P${this.id+1} · ${(this.confidence*100).toFixed(0)}%`, lx, ly - 3);
-    ctx.textAlign = 'left';
-  }
+  ctx.restore();
 }
 
-// ─────────────────────────────────────────────
-// MAIN POSE CANVAS
-// ─────────────────────────────────────────────
-const poseCanvas = document.getElementById('poseCanvas');
-const ctx = poseCanvas.getContext('2d');
+// ── CONTROLS ──
+async function flipCamera() {
+  facingMode = facingMode==='environment' ? 'user' : 'environment';
+  isMirror   = facingMode==='user';
+  video.classList.toggle('mirror', isMirror);
+  document.getElementById('modeVal').textContent = isMirror ? 'FRONT' : 'REAR';
 
-function resizeCanvas() {
-  const wrap = poseCanvas.parentElement;
-  poseCanvas.width = wrap.clientWidth;
-  poseCanvas.height = wrap.clientHeight;
+  if (mpCamera) mpCamera.stop();
+  if (stream) stream.getTracks().forEach(t=>t.stop());
+
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:{ideal:facingMode}, width:{ideal:1280}, height:{ideal:720} }, audio:false
+  });
+  video.srcObject = stream;
+
+  mpCamera = new Camera(video, {
+    onFrame: async()=>{ if(mpPose){ frameStart=Date.now(); await mpPose.send({image:video}); } },
+    width:1280, height:720
+  });
+  mpCamera.start();
 }
 
-function drawGrid(ctx, w, h) {
-  ctx.strokeStyle = 'rgba(0,184,255,0.04)';
-  ctx.lineWidth = 1;
-  const gsize = 40;
-  for (let x = 0; x < w; x += gsize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0); ctx.lineTo(x, h);
-    ctx.stroke();
-  }
-  for (let y = 0; y < h; y += gsize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y); ctx.lineTo(w, y);
-    ctx.stroke();
-  }
+function toggleFX() {
+  fxOn = !fxOn;
+  document.getElementById('fxLabel').textContent = fxOn ? 'FX ON' : 'FX OFF';
 }
 
-function drawWallOverlay(ctx, w, h) {
-  // Faint room outline
-  ctx.strokeStyle = 'rgba(0,245,196,0.06)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8,4]);
-  ctx.strokeRect(w*0.05, h*0.05, w*0.9, h*0.9);
-  ctx.setLineDash([]);
-}
-
-let t = 0;
-let lastFPS = Date.now();
-let frameCount = 0;
-
-function renderPose() {
-  resizeCanvas();
-  const w = poseCanvas.width;
-  const h = poseCanvas.height;
-
-  // Clear
-  ctx.fillStyle = '#020b0f';
-  ctx.fillRect(0,0,w,h);
-
-  // Grid
-  drawGrid(ctx, w, h);
-  drawWallOverlay(ctx, w, h);
-
-  // Signal noise background
-  if (Math.random() < 0.1) {
-    ctx.fillStyle = 'rgba(0,184,255,0.01)';
-    ctx.fillRect(0, Math.random()*h, w, 1 + Math.random()*2);
+// ── NETWORK INFO ──
+function readNetworkInfo() {
+  const c = navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if (!c) return;
+  const type = c.effectiveType||c.type||'wifi';
+  document.getElementById('connType').textContent = type.toUpperCase();
+  if (c.downlink) {
+    document.getElementById('dlVal').textContent = c.downlink.toFixed(1)+'Mb';
+    const lv = Math.min(4,Math.ceil(c.downlink/15));
+    document.querySelectorAll('.sig-bar').forEach((b,i)=>b.classList.toggle('on',i<lv));
   }
-
-  // Draw persons
-  for (let p of persons) {
-    p.update(t, w, h);
-    p.draw(ctx, w, h);
-  }
-
-  // Zone label
-  ctx.fillStyle = 'rgba(0,245,196,0.5)';
-  ctx.font = '10px "Share Tech Mono"';
-  ctx.fillText('ZONE: ' + currentZone.toUpperCase(), 16, h - 16);
-  ctx.fillText(`${new Date().toLocaleTimeString()}`, w - 100, h - 16);
-
-  // Multipath signal ripples around persons
-  for (let p of persons) {
-    const px = p.x * w;
-    const py = p.y * h;
-    const ripR = (t * 30 % 80);
-    ctx.beginPath();
-    ctx.arc(px, py, ripR, 0, Math.PI*2);
-    ctx.strokeStyle = `rgba(0,245,196,${0.15 * (1 - ripR/80)})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  t += 0.016;
-  frameCount++;
-
-  const now = Date.now();
-  if (now - lastFPS > 1000) {
-    const fps = Math.round(frameCount * 1000 / (now - lastFPS));
-    document.getElementById('fpsDisplay').textContent = fps;
-    frameCount = 0;
-    lastFPS = now;
-  }
-
-  animFrame = requestAnimationFrame(renderPose);
-}
-
-// ─────────────────────────────────────────────
-// WAVEFORM CANVAS
-// ─────────────────────────────────────────────
-const waveCanvas = document.getElementById('waveCanvas');
-const wctx = waveCanvas.getContext('2d');
-const SUBCARRIERS = 52;
-
-function renderWave() {
-  const w = waveCanvas.parentElement.clientWidth;
-  const h = 78;
-  waveCanvas.width = w;
-  waveCanvas.height = h;
-
-  wctx.fillStyle = 'rgba(2,11,15,0.8)';
-  wctx.fillRect(0,0,w,h);
-
-  const mid = h / 2;
-
-  // Draw 3 antenna streams
-  const colors = ['#00f5c4', '#00b8ff', '#ffd700'];
-  for (let a = 0; a < 3; a++) {
-    wctx.beginPath();
-    const step = w / (SUBCARRIERS - 1);
-    for (let i = 0; i < SUBCARRIERS; i++) {
-      const noise = (Math.random()-0.5) * 6;
-      const person_mod = persons.reduce((acc, p) => acc + Math.sin(t*3 + i*0.3 + p.phase)*8, 0);
-      const amp = 12 + person_mod/persons.length || 12;
-      const y = mid + Math.sin(t*2 + i*0.4 + a*2.1)*amp + noise;
-      const x = i * step;
-      if (i === 0) wctx.moveTo(x, y);
-      else wctx.lineTo(x, y);
-    }
-    wctx.strokeStyle = colors[a] + '80';
-    wctx.lineWidth = 1.5;
-    wctx.stroke();
-  }
-
-  // Center line
-  wctx.beginPath();
-  wctx.moveTo(0, mid); wctx.lineTo(w, mid);
-  wctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  wctx.lineWidth = 1;
-  wctx.stroke();
-}
-
-// ─────────────────────────────────────────────
-// RADAR CANVAS
-// ─────────────────────────────────────────────
-const radarCanvas = document.getElementById('radarCanvas');
-const rctx = radarCanvas.getContext('2d');
-let radarAngle = 0;
-
-function renderRadar() {
-  const w = radarCanvas.clientWidth;
-  const h = 180;
-  radarCanvas.width = w;
-  radarCanvas.height = h;
-
-  const cx = w/2, cy = h/2 + 10;
-  const maxR = Math.min(w,h)*0.42;
-
-  rctx.fillStyle = '#020b0f';
-  rctx.fillRect(0,0,w,h);
-
-  // Rings
-  for (let i = 1; i <= 4; i++) {
-    rctx.beginPath();
-    rctx.arc(cx, cy, maxR*i/4, 0, Math.PI*2);
-    rctx.strokeStyle = 'rgba(0,184,255,0.12)';
-    rctx.lineWidth = 1;
-    rctx.stroke();
-  }
-
-  // Cross
-  rctx.strokeStyle = 'rgba(0,184,255,0.1)';
-  rctx.beginPath();
-  rctx.moveTo(cx-maxR,cy); rctx.lineTo(cx+maxR,cy);
-  rctx.moveTo(cx,cy-maxR); rctx.lineTo(cx,cy+maxR);
-  rctx.stroke();
-
-  // Sweep
-  const grad = rctx.createConicalGradient ?
-    null :
-    rctx.createLinearGradient(cx, cy, cx + maxR, cy);
-
-  rctx.save();
-  rctx.translate(cx, cy);
-  rctx.rotate(radarAngle);
-  const sweepGrad = rctx.createConicalGradient ?
-    rctx.createConicalGradient(0,0,0) :
-    (() => {
-      const g = { addColorStop: ()=>{} };
-      return g;
-    })();
-
-  // Sweep wedge
-  rctx.beginPath();
-  rctx.moveTo(0, 0);
-  rctx.arc(0, 0, maxR, -0.5, 0.1);
-  rctx.closePath();
-  const sweep = rctx.createLinearGradient(0, 0, maxR, 0);
-  sweep.addColorStop(0, 'rgba(0,245,196,0)');
-  sweep.addColorStop(0.7, 'rgba(0,245,196,0.2)');
-  sweep.addColorStop(1, 'rgba(0,245,196,0.5)');
-  rctx.fillStyle = sweep;
-  rctx.fill();
-
-  // Sweep line
-  rctx.beginPath();
-  rctx.moveTo(0, 0);
-  rctx.lineTo(maxR, 0);
-  rctx.strokeStyle = 'rgba(0,245,196,0.9)';
-  rctx.lineWidth = 1.5;
-  rctx.stroke();
-
-  rctx.restore();
-
-  // Person blips
-  for (let i = 0; i < persons.length; i++) {
-    const p = persons[i];
-    const angle = Math.atan2(p.y - 0.5, p.x - 0.5);
-    const dist = Math.hypot(p.x - 0.5, p.y - 0.5) * maxR * 1.4;
-    const bx = cx + Math.cos(angle) * dist;
-    const by = cy + Math.sin(angle) * dist;
-
-    rctx.beginPath();
-    rctx.arc(bx, by, 5, 0, Math.PI*2);
-    rctx.fillStyle = p.color;
-    rctx.fill();
-
-    rctx.beginPath();
-    rctx.arc(bx, by, 10, 0, Math.PI*2);
-    rctx.fillStyle = p.color + '30';
-    rctx.fill();
-
-    // Trail
-    rctx.font = '8px "Share Tech Mono"';
-    rctx.fillStyle = p.color;
-    rctx.fillText(`P${i+1}`, bx+8, by);
-  }
-
-  radarAngle += 0.04;
-}
-
-// ─────────────────────────────────────────────
-// PERSON LIST
-// ─────────────────────────────────────────────
-function renderPersonList() {
-  const list = document.getElementById('personList');
-  list.innerHTML = '';
-  for (let i = 0; i < persons.length; i++) {
-    const p = persons[i];
-    const card = document.createElement('div');
-    card.className = 'person-card';
-    card.innerHTML = `
-      <div class="person-avatar" style="border-color:${p.color}40">
-        <svg width="40" height="40" viewBox="-20 -20 40 40">
-          ${drawMiniSkeleton(p)}
-        </svg>
-      </div>
-      <div class="person-info">
-        <div class="person-id">PERSON · ${i+1}</div>
-        <div class="person-activity">${p.activity}</div>
-      </div>
-      <div class="person-conf" style="color:${p.color}">${(p.confidence*100).toFixed(0)}%</div>
-    `;
-    list.appendChild(card);
-  }
-  document.getElementById('personCount').textContent = persons.length;
-  document.getElementById('personBadge').textContent = persons.length;
-}
-
-function drawMiniSkeleton(p) {
-  let svg = '';
-  const sc = 18;
-  const col = p.color;
-  for (let [a,b] of CONNECTIONS) {
-    const ka = p.keypoints[a];
-    const kb = p.keypoints[b];
-    if (!ka || !kb) continue;
-    svg += `<line x1="${ka.x*sc}" y1="${ka.y*sc}" x2="${kb.x*sc}" y2="${kb.y*sc}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.8"/>`;
-  }
-  for (let k of p.keypoints) {
-    svg += `<circle cx="${k.x*sc}" cy="${k.y*sc}" r="1.5" fill="${col}"/>`;
-  }
-  return svg;
-}
-
-// ─────────────────────────────────────────────
-// METRICS
-// ─────────────────────────────────────────────
-function updateMetric(id, label, pct) {
-  const el = document.getElementById(id+'Val');
-  const bar = document.getElementById(id+'Bar');
-  if (el) el.textContent = label;
-  if (bar) bar.style.width = Math.min(100,pct) + '%';
-}
-
-let detectionsCounter = 0;
-let avgConfSum = 0;
-let avgConfCount = 0;
-
-function updateMetrics() {
-  const conn = navigator.connection;
-  const rtt = conn ? conn.rtt : 15 + Math.random()*10;
-  const latency = rtt ? rtt/2 : 20 + Math.random()*30;
-
-  updateMetric('latency', latency.toFixed(0), (100 - latency)*0.8);
-  updateMetric('frameRate', '30', 100);
-
-  const conf = persons.length > 0 ?
-    persons.reduce((a,p) => a + p.confidence, 0) / persons.length : 0;
-
-  updateMetric('conf', conf.toFixed(2), conf*100);
-
-  detectionsCounter++;
-  document.getElementById('detectionsToday').textContent = detectionsCounter;
-
-  if (conf > 0) {
-    avgConfSum += conf;
-    avgConfCount++;
-    document.getElementById('avgConf').textContent =
-      (avgConfSum/avgConfCount*100).toFixed(1) + '%';
-  }
-}
-
-// ─────────────────────────────────────────────
-// ALERTS
-// ─────────────────────────────────────────────
-function addAlert(type, msg) {
-  const list = document.getElementById('alertList');
-  const item = document.createElement('div');
-  item.className = 'alert-item';
-  const typeClass = type === 'FALL' ? 'err' : type === 'WARN' ? 'warn' : 'ok';
-  item.innerHTML = `
-    <span class="alert-type ${typeClass}">${type}</span>
-    <div>
-      <div class="alert-msg">${msg}</div>
-      <div class="alert-time">${new Date().toLocaleTimeString()}</div>
-    </div>
-  `;
-  list.prepend(item);
-  // Keep max 8 alerts
-  while (list.children.length > 8) list.removeChild(list.lastChild);
-}
-
-// ─────────────────────────────────────────────
-// ZONE SELECTOR
-// ─────────────────────────────────────────────
-function selectZone(el, zone) {
-  document.querySelectorAll('.zone-item').forEach(z => z.classList.remove('active'));
-  el.classList.add('active');
-  currentZone = zone;
-  document.getElementById('zoneLabel').textContent = zone.toUpperCase();
-  addAlert('INFO', `Switched to zone: ${zone}`);
-  respawnPersons();
-}
-
-function respawnPersons() {
-  persons = [];
-  const count = Math.floor(Math.random()*2) + 1;
-  for (let i = 0; i < count; i++) {
-    persons.push(new Person(
-      i,
-      0.2 + Math.random()*0.6,
-      0.25 + Math.random()*0.5
-    ));
-  }
-  renderPersonList();
-}
-
-// ─────────────────────────────────────────────
-// SIMULATION LOOP
-// ─────────────────────────────────────────────
-let simT = 0;
-
-function simLoop() {
-  simT++;
-
-  // Randomly change person count occasionally
-  if (simT % 400 === 0) {
-    const target = Math.floor(Math.random()*3) + 1;
-    while (persons.length < target) {
-      persons.push(new Person(persons.length, 0.2+Math.random()*0.6, 0.25+Math.random()*0.5));
-      addAlert('INFO', `New person detected (Person ${persons.length})`);
-    }
-    while (persons.length > target && persons.length > 1) {
-      persons.pop();
-      addAlert('INFO', `Person left detection zone`);
-    }
-    renderPersonList();
-
-    // Random zone counts
-    for (let i = 0; i < 5; i++) {
-      const el = document.getElementById('z'+i);
-      if (el) el.textContent = i === 0 ? persons.length : (Math.random() < 0.3 ? Math.floor(Math.random()*2)+1 : 0);
-    }
-  }
-
-  // Update metrics & person list periodically
-  if (simT % 30 === 0) {
-    updateMetrics();
-    renderPersonList();
-  }
-
-  // Render waves & radar
-  renderWave();
-  renderRadar();
-
-  setTimeout(simLoop, 33); // ~30fps loop for non-canvas updates
-}
-
-// ─────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────
-function init() {
-  readNetworkInfo();
-  respawnPersons();
-  updateClock();
-  renderPose();
-  simLoop();
-
-  addAlert('OK', 'WiFi interface initialized');
-  addAlert('OK', 'DensePose model loaded (94.2% accuracy)');
-
-  // Network change listener
-  if (navigator.connection) {
-    navigator.connection.addEventListener('change', () => {
-      readNetworkInfo();
-      addAlert('WARN', 'Network conditions changed');
-    });
-  }
-
-  window.addEventListener('resize', resizeCanvas);
+  if (c.rtt) document.getElementById('rttVal').textContent = c.rtt+'ms';
+  c.addEventListener('change', readNetworkInfo);
 }
 </script>
 
